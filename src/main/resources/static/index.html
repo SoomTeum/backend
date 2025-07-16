@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>숨 여행, 틈 | Backend</title>
+    <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+        }
+
+        body {
+          height: 100vh;
+          background: linear-gradient(to right, #f8f9fa, #e9ecef);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .container {
+          background: white;
+          padding: 3rem 4rem;
+          border-radius: 20px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          text-align: center;
+          max-width: 500px;
+        }
+
+        h1 {
+          font-size: 2rem;
+          color: #2c3e50;
+          margin-bottom: 1rem;
+        }
+
+        p {
+          font-size: 1rem;
+          color: #555;
+          margin-bottom: 2.5rem;
+        }
+
+        .btn {
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background-color: #4a90e2;
+          color: white;
+          border: none;
+          border-radius: 30px;
+          font-size: 1rem;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+          background-color: #357ab7;
+        }
+
+        .logo {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #4a90e2;
+          margin-bottom: 1.2rem;
+        }
+
+        .small {
+          font-size: 0.9rem;
+          color: #888;
+          margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="logo">숨 여행, 틈</div>
+    <h1>백엔드 서버에 오신 걸<br /> 환영합니다!</h1>
+    <p>
+        이 페이지는 숨 여행, 틈의 백엔드 API 서버입니다.<br />
+        API 문서를 확인하려면 아래 버튼을 클릭해주세요.
+    </p>
+    <a class="btn" href="/swagger-ui/index.html">📚 Swagger API 문서 보기</a>
+    <div class="small">© 2025 숨 여행, 틈 | Backend Service</div>
+</div>
+</body>
+</html>
