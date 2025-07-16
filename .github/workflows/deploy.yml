@@ -44,11 +44,11 @@ jobs:
 
       # Build Docker image
       - name: Build Docker image
-        run: docker build -t soomteum/soomteum:latest .
+        run: docker build -t lilloo04/soomteum:latest .
 
       # Push Docker image
       - name: Push Docker image
-        run: docker push soomteum/soomteum:latest
+        run: docker push lilloo04/soomteum:latest
 
       # Set up SSH agent
       - name: Set up SSH agent
