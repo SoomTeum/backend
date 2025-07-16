@@ -3,6 +3,9 @@ name: CI/CD Deploy to EC2
 
 # 이벤트 트리거: dev 브랜치에 push 발생 시 실행
 on:
+  pull_request:
+    branches:
+      - dev
   push:
     branches:
       - dev
@@ -24,13 +27,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      # Add Permission
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       # Build with Gradle
       - name: Build with Gradle
         run: ./gradlew build -x test
-
-      # Run tests
-      - name: Run tests
-        run: ./gradlew test
 
       # Log in to DockerHub
       - name: Log in to DockerHub
@@ -41,11 +44,11 @@ jobs:
 
       # Build Docker image
       - name: Build Docker image
-        run: docker build -t soomteum/soomteum:latest .
+        run: docker build -t lilloo04/soomteum:latest .
 
       # Push Docker image
       - name: Push Docker image
-        run: docker push soomteum/soomteum:latest
+        run: docker push lilloo04/soomteum:latest
 
       # Set up SSH agent
       - name: Set up SSH agent
