@@ -1,0 +1,91 @@
+package com.comma.soomteum.domain.auth.service;
+
+import com.comma.soomteum.domain.auth.JwtProvider;
+import com.comma.soomteum.domain.auth.dto.LoginResponseDto;
+import com.comma.soomteum.domain.auth.dto.TokenRequestDto;
+import com.comma.soomteum.domain.token.dto.TokenDto;
+import com.comma.soomteum.domain.token.entity.Token;
+import com.comma.soomteum.domain.token.repository.TokenRepository;
+import com.comma.soomteum.domain.user.entity.User;
+import com.comma.soomteum.domain.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
+    private final JwtProvider jwtProvider;
+
+    @Transactional
+    public LoginResponseDto socialLogin(String providerId, String email) {
+        // 1) providerId로 user 조회 또는 신규 생성
+        Optional<User> userOptional = userRepository.findByProviderId(providerId);
+
+        boolean isNewUser = userOptional.isEmpty();
+
+        User user = userOptional.orElseGet(() -> userRepository.save(
+                User.builder()
+                        .providerId(providerId)
+                        .nickname("임시유저" + providerId)
+                        .email(email)
+                        .isActive(true)
+                        .build()
+        ));
+
+
+        // 2) JWT 생성
+        TokenDto tokenDto = jwtProvider.generateTokens(user);
+
+        // 3) Token 엔티티로 저장
+        Token token = Token.builder()
+                .user(user)
+                .grantType(tokenDto.getGrantType())
+                .accessToken(tokenDto.getAccessToken())
+                .accessExpiresAt(LocalDateTime.now().plus(jwtProvider.getAccessExpiration(), ChronoUnit.MILLIS))
+                .refreshToken(tokenDto.getRefreshToken())
+                .refreshExpiresAt(LocalDateTime.now().plus(jwtProvider.getAccessExpiration(), ChronoUnit.MILLIS))
+                .issuedAt(LocalDateTime.now())
+                .build();
+        tokenRepository.save(token);
+
+        // 4) 응답
+        return LoginResponseDto.builder()
+                .grantType(tokenDto.getGrantType())
+                .accessToken(tokenDto.getAccessToken())
+                .refreshToken(tokenDto.getRefreshToken())
+                .build();
+    }
+
+    @Transactional
+    public TokenDto reissue(TokenRequestDto requestDto) {
+        // 1) DB에서 refreshToken 조회
+        Token token = tokenRepository.findByRefreshToken(requestDto.getRefreshToken())
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 Refresh Token 입니다."));
+
+        // 2) 리프레시 토큰 검증
+        if (!jwtProvider.validateToken(token.getRefreshToken())) {
+            throw new RuntimeException("Refresh Token이 유효하지 않습니다.");
+        }
+
+        // 3) 새 JWT 생성
+        TokenDto newTokens = jwtProvider.generateTokens(token.getUser());
+
+        // 4) refresh 토큰 만료 시각 계산
+        LocalDateTime refreshExpiresAt = LocalDateTime.now()
+                .plus(jwtProvider.getRefreshExpiration(), ChronoUnit.MILLIS);
+
+        // 5) Token 엔티티 업데이트
+        token.updateRefreshToken(newTokens.getRefreshToken(), refreshExpiresAt);
+
+        return newTokens;
+    }
+
+}
+
