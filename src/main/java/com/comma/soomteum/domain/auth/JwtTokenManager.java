@@ -6,7 +6,6 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,7 +14,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import java.nio.charset.StandardCharsets;
+
 import java.security.Key;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class JwtProvider {
+public class JwtTokenManager {
 
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "Bearer";
@@ -33,9 +32,9 @@ public class JwtProvider {
     private final long accessTokenExpirationMilliseconds;
     private final long refreshTokenExpirationMilliseconds;
 
-    public JwtProvider(@Value("${jwt.secret}") String secretKey,
-                       @Value("${jwt.access-token-expiration-milliseconds}") long accessTokenExpirationMilliseconds,
-                       @Value("${jwt.refresh-token-expiration-milliseconds}") long refreshTokenExpirationMilliseconds) {
+    public JwtTokenManager(@Value("${jwt.secret}") String secretKey,
+                           @Value("${jwt.access-token-expiration-milliseconds}") long accessTokenExpirationMilliseconds,
+                           @Value("${jwt.refresh-token-expiration-milliseconds}") long refreshTokenExpirationMilliseconds) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.accessTokenExpirationMilliseconds = accessTokenExpirationMilliseconds;
@@ -114,7 +113,7 @@ public class JwtProvider {
 
     /*
     jwt 토큰에서 userid 추출하는 매서드
-    @CurrentUser 어노테이션으로 사용자 userId 추출해서 사용가능
+    @LoginUser 어노테이션으로 사용자 userId 추출해서 사용가능
      */
     public Long getUserIdFromToken(String accessToken) {
         Claims claims = parseClaims(accessToken);

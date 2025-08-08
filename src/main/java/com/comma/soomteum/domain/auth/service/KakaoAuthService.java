@@ -1,7 +1,7 @@
 package com.comma.soomteum.domain.auth.service;
 
 
-import com.comma.soomteum.domain.auth.dto.KakaoUserResponse;
+import com.comma.soomteum.domain.auth.dto.KakaoUserResponseDto;
 import com.comma.soomteum.domain.auth.dto.LoginResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ public class KakaoAuthService {
 
     public LoginResponseDto processKakaoLogin(String kakaoAccessToken) {
         // 1. 전달받은 액세스 토큰으로 사용자 정보 요청
-        KakaoUserResponse userResponse = getKakaoUserInfo(kakaoAccessToken).block();
+        KakaoUserResponseDto userResponse = getKakaoUserInfo(kakaoAccessToken).block();
 
         // 2. 받은 정보로 우리 서비스에 로그인/회원가입 처리
         String providerId = String.valueOf(userResponse.getId());
@@ -30,12 +30,12 @@ public class KakaoAuthService {
         return authService.socialLogin(providerId, email);
     }
 
-    private Mono<KakaoUserResponse> getKakaoUserInfo(String accessToken) {
+    private Mono<KakaoUserResponseDto> getKakaoUserInfo(String accessToken) {
         return webClient.get()
                 .uri(userInfoUri)
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
-                .bodyToMono(KakaoUserResponse.class);
+                .bodyToMono(KakaoUserResponseDto.class);
     }
 
 }

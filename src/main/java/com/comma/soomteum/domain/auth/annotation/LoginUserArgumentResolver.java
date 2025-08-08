@@ -1,7 +1,9 @@
 package com.comma.soomteum.domain.auth.annotation;
 
-import com.comma.soomteum.domain.auth.JwtProvider;
+import com.comma.soomteum.domain.auth.JwtTokenManager;
+import com.comma.soomteum.domain.user.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -10,18 +12,16 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 @Component
-public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
+@RequiredArgsConstructor
+public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver {
 
-    private final JwtProvider jwtProvider;
-
-    public CurrentUserArgumentResolver(JwtProvider jwtProvider) {
-        this.jwtProvider = jwtProvider;
-    }
+    private final JwtTokenManager jwtTokenManager;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(CurrentUser.class)
-                && parameter.getParameterType().equals(Long.class); // userId 타입
+        boolean hasLoginUserAnnotation = parameter.hasParameterAnnotation(LoginUser.class);
+        boolean hasUserType = User.class.isAssignableFrom(parameter.getParameterType());
+        return hasLoginUserAnnotation && hasUserType;
     }
 
     @Override
@@ -30,12 +30,11 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
 
-        String token = jwtProvider.resolveToken(request); // Header에서 Bearer 토큰 추출
-        if (token == null || !jwtProvider.validateToken(token)) {
+        String token = jwtTokenManager.resolveToken(request);
+        if (token == null || !jwtTokenManager.validateToken(token)) {
             throw new RuntimeException("유효하지 않은 토큰입니다.");
         }
 
-        return jwtProvider.getUserIdFromToken(token); // 실제 userId 추출
+        return jwtTokenManager.getUserIdFromToken(token);
     }
 }
-

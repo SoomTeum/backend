@@ -4,7 +4,7 @@ import com.comma.soomteum.domain.auth.service.AuthService;
 import com.comma.soomteum.domain.auth.service.KakaoAuthService;
 import com.comma.soomteum.domain.auth.dto.KakaoTokenRequestDto;
 import com.comma.soomteum.domain.auth.dto.LoginResponseDto;
-import com.comma.soomteum.domain.auth.dto.TokenRequestDto;
+import com.comma.soomteum.domain.auth.dto.AuthTokenRequestDto;
 import com.comma.soomteum.domain.token.dto.TokenDto;
 import com.comma.soomteum.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    public ApiResponse<TokenDto> reissue(@RequestBody TokenRequestDto requestDto) {
+    public ApiResponse<TokenDto> reissue(@RequestBody AuthTokenRequestDto requestDto) {
         TokenDto tokenDto = authService.reissue(requestDto);
         return ApiResponse.ok(tokenDto);
     }
