@@ -19,5 +19,10 @@ public class User extends BaseEntity {
     @Column(length = 50, nullable = false)
     private String nickname;
 
+    @Column(nullable = false)
+    private String providerId;
+
+    private String email;
+
     private Boolean isActive;
 }
