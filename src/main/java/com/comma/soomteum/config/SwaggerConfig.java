@@ -83,7 +83,7 @@ public class SwaggerConfig {
     GroupedOpenApi authGroup(OpenApiCustomizer commonErrorResponses) {
         return GroupedOpenApi.builder()
                 .group("Auth")
-                .pathsToMatch("/api/auth/**")     // AuthController 경로와 일치
+                .pathsToMatch("/api/auth/**")
                 .addOpenApiCustomizer(commonErrorResponses)
                 .build();
     }
