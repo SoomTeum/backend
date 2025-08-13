@@ -15,8 +15,19 @@ public class KorService2Response {
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class Response {
+        private Header header;
         private Body body;
     }
+
+    @Getter @Setter
+    @NoArgsConstructor @AllArgsConstructor
+    @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Header {
+        private String resultCode;
+        private String resultMsg;
+    }
+
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class Body {

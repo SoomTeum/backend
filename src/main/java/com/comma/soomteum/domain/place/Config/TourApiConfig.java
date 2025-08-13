@@ -3,10 +3,16 @@ package com.comma.soomteum.domain.place.Config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,24 +25,42 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class TourApiConfig {
 
-    private final WebClient.Builder builder;
     private final TourApiProperties props;
 
     @Bean
-    public Map<String, WebClient> tourApiClients() {
-        var map = new HashMap<String, WebClient>();
-        var connector = reactorConnector(props.getTimeout().getConnectMs(), props.getTimeout().getReadMs());
+    @Qualifier("tourApiClients")
+    public Map<String, WebClient> tourApiClients(TourApiProperties props) {
+        Map<String, WebClient> clients = new HashMap<>();
 
-        props.getClients().forEach((key, c) -> {
-            var wc = builder
-                    .baseUrl(c.getBaseUrl())
-                    .clientConnector(connector)
+        props.getClients().forEach((key, clientProps) -> {
+
+            // ★ 인코딩 모드 해제된 UriBuilderFactory 생성
+            DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(clientProps.getBaseUrl());
+            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+
+            WebClient client = WebClient.builder()
+                    .uriBuilderFactory(uriFactory)
+                    .baseUrl(clientProps.getBaseUrl())
+                    .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    // 요청 로깅
+                    .filter(ExchangeFilterFunction.ofRequestProcessor(req -> {
+                        System.out.println(">> [" + key + "] " + req.method() + " " + req.url());
+                        System.out.println(">> Accept=" + req.headers().getFirst(HttpHeaders.ACCEPT));
+                        return Mono.just(req);
+                    }))
+                    // 응답 로깅
+                    .filter(ExchangeFilterFunction.ofResponseProcessor(resp -> {
+                        System.out.println("<< [" + key + "] Status=" + resp.statusCode());
+                        System.out.println("<< Content-Type=" +
+                                resp.headers().asHttpHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
+                        return Mono.just(resp);
+                    }))
                     .build();
-            map.put(key, wc);
-            log.info("Registered TourAPI client: {} -> {}", key, c.getBaseUrl());
+
+            clients.put(key, client);
         });
 
-        return map;
+        return clients;
     }
 
     private org.springframework.http.client.reactive.ReactorClientHttpConnector reactorConnector(int connectMs, int readMs) {
