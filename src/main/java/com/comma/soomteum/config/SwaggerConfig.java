@@ -1,11 +1,9 @@
 package com.comma.soomteum.config;
 
-import com.comma.soomteum.global.response.ExceptionDto; // ★ 에러 바디 DTO
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
+import com.comma.soomteum.global.response.ExceptionDto;
+import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.security.*;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.servers.Server;
@@ -40,49 +38,61 @@ public class SwaggerConfig {
                 .components(components);
     }
 
-    // ⬇️ /api/kor/** 그룹에 공통 에러 응답(400/502/500) 자동 주입
     @Bean
-    GroupedOpenApi korGroup(OpenApiCustomizer korCommonResponses) {
-        return GroupedOpenApi.builder()
-                .group("KOR Service2")
-                .pathsToMatch("/api/kor/**")        // 전역 적용 원하면 "/**"
-                .addOpenApiCustomizer(korCommonResponses)
-                .build();
-    }
-
-    @Bean
-    OpenApiCustomizer korCommonResponses() {
+    OpenApiCustomizer commonErrorResponses() {
         return openApi -> {
-            // 1) ExceptionDto 스키마 등록(안전하게 명시)
             var modelMap = io.swagger.v3.core.converter.ModelConverters.getInstance()
                     .read(ExceptionDto.class);
             if (openApi.getComponents() != null && modelMap != null) {
                 modelMap.forEach((name, schema) -> openApi.getComponents().addSchemas(name, schema));
             }
 
-            // 2) 공통 에러 본문 (application/json + ExceptionDto)
             var errorContent = new Content().addMediaType(
                     org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
                     new io.swagger.v3.oas.models.media.MediaType()
                             .schema(new Schema<>().$ref("#/components/schemas/ExceptionDto"))
             );
 
-            // 3) 모든 Operation에 400/502/500 응답 추가
             if (openApi.getPaths() == null) return;
             openApi.getPaths().values().forEach(pathItem ->
                     pathItem.readOperations().forEach(op -> {
                         op.getResponses()
                                 .addApiResponse("400", new io.swagger.v3.oas.models.responses.ApiResponse()
-                                        .description("요청 파라미터 오류")
-                                        .content(errorContent))
+                                        .description("요청 파라미터 오류").content(errorContent))
                                 .addApiResponse("502", new io.swagger.v3.oas.models.responses.ApiResponse()
-                                        .description("외부 관광 API 오류")
-                                        .content(errorContent))
+                                        .description("외부 관광 API 오류").content(errorContent))
                                 .addApiResponse("500", new io.swagger.v3.oas.models.responses.ApiResponse()
-                                        .description("서버 오류")
-                                        .content(errorContent));
+                                        .description("서버 오류").content(errorContent));
                     })
             );
         };
     }
+
+    // KOR Service2 그룹
+    @Bean
+    GroupedOpenApi korGroup(OpenApiCustomizer commonErrorResponses) {
+        return GroupedOpenApi.builder()
+                .group("KOR Service2")
+                .pathsToMatch("/api/kor/**")
+                .addOpenApiCustomizer(commonErrorResponses)
+                .build();
+    }
+
+    // Auth(카카오) 그룹
+    @Bean
+    GroupedOpenApi authGroup(OpenApiCustomizer commonErrorResponses) {
+        return GroupedOpenApi.builder()
+                .group("Auth")
+                .pathsToMatch("/api/auth/**")     // AuthController 경로와 일치
+                .addOpenApiCustomizer(commonErrorResponses)
+                .build();
+    }
+
+     @Bean
+     GroupedOpenApi allApis() {
+         return GroupedOpenApi.builder()
+                 .group("All APIs")
+                 .pathsToMatch("/**")
+                 .build();
+     }
 }
