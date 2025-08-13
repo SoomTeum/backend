@@ -1,0 +1,49 @@
+package com.comma.soomteum.domain.place.Controller;
+
+
+import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
+import com.comma.soomteum.domain.place.Dto.KorService2Response;
+import com.comma.soomteum.domain.place.Service.KorService2Service;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+
+@Tag(name = "KOR Service2", description = "한국관광공사 OpenAPI 연동")
+@RestController
+@RequestMapping(path = "/api/kor", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequiredArgsConstructor
+@Validated
+public class KorService2Controller {
+
+    private final KorService2Service korService2Service;
+
+    @Operation(
+            summary = "위치기반 관광정보 조회 (/locationBasedList2)",
+            description = "경도(mapX)·위도(mapY)와 반경(radius) 기준으로 관광정보를 조회합니다. "
+                    + "옵션: cat1/cat2(분류), pageNo/numOfRows(페이징), arrange(정렬; 기본값 서비스 내부 적용).",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "성공",
+                            content = @Content(schema = @Schema(implementation = KorService2Response.class))),
+                    @ApiResponse(responseCode = "400", description = "요청 파라미터 오류"),
+                    @ApiResponse(responseCode = "500", description = "서버 오류")
+            }
+    )
+    @GetMapping("/location-based")
+    public Mono<KorService2Response> locationBasedList(
+            @ParameterObject TourApiRequestDto.LocationBasedList2 req
+    ) {
+        // DTO 내부의 pageNoOrDefault, rowsOrDefault, arrangeOrDefault 등을
+        // 서비스에서 사용 가능 (컨트롤러에서는 그대로 전달)
+        return korService2Service.locationBasedList(req);
+    }
+}
