@@ -62,7 +62,15 @@ public enum ErrorCode {
     // ========================
     // 500 Internal Server Error
     // ========================
-    INTERNAL_SERVER_ERROR(500_000, HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다.");
+    INTERNAL_SERVER_ERROR(500_000, HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다."),
+
+
+    // ========================
+    // 502 Bad Gateway (외부 API 오류)
+    // ========================
+    TOUR_API_CLIENT_ERROR(502_001, HttpStatus.BAD_GATEWAY, "외부 관광 API 클라이언트 오류 발생"),
+    TOUR_API_SERVER_ERROR(502_002, HttpStatus.BAD_GATEWAY, "외부 관광 API 서버 오류 발생");
+
 
     // 기타 공통
 

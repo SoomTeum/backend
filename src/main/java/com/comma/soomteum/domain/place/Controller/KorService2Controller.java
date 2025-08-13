@@ -37,8 +37,6 @@ public class KorService2Controller {
             responses = {
                     @ApiResponse(responseCode = "200", description = "성공",
                             content = @Content(schema = @Schema(implementation = KorService2Response.class))),
-                    @ApiResponse(responseCode = "400", description = "요청 파라미터 오류"),
-                    @ApiResponse(responseCode = "500", description = "서버 오류")
             }
     )
     @GetMapping("/location-based")
@@ -57,8 +55,6 @@ public class KorService2Controller {
             responses = {
                     @ApiResponse(responseCode = "200", description = "성공",
                             content = @Content(schema = @Schema(implementation = KorService2Response.class))),
-                    @ApiResponse(responseCode = "400", description = "요청 파라미터 오류"),
-                    @ApiResponse(responseCode = "500", description = "서버 오류")
             }
     )
     @GetMapping(path = "/area-based")

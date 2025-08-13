@@ -6,41 +6,46 @@ import com.comma.soomteum.global.response.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 
 @Slf4j
-//@RestControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ApiResponse<?>> handleCustom(CustomException ex, ServerHttpRequest request) {
+        log.error("[CustomException] code={}, msg={}, detail={}",
+                ex.getErrorCode().getCode(), ex.getErrorCode().getMessage(), ex.getMessage());
+        var ec = ex.getErrorCode();
+        var body = ApiResponse.fail(ex, request.getPath().value()); // ★ path 전달
+        return ResponseEntity.status(ec.getHttpStatus()).body(body);
+    }
+
     @ExceptionHandler(EntityNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ApiResponse<?> handleEntityNotFoundException(EntityNotFoundException ex) {
-        log.error("[예외 발생] EntityNotFoundException: {}", ex.getMessage());
-        return ApiResponse.fail(new CustomException(ErrorCode.NOT_FOUND_END_POINT,ex.getMessage()));
+    public ResponseEntity<ApiResponse<?>> handleEntityNotFound(EntityNotFoundException ex, ServerHttpRequest request) {
+        log.error("[EntityNotFound] {}", ex.getMessage(), ex);
+        var custom = new CustomException(ErrorCode.NOT_FOUND_END_POINT, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail(custom, request.getPath().value()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<?> handleIllegalStateException(Exception ex) {
-        log.error("[예외 발생] Exception: {}", ex.getMessage());
-        return ApiResponse.fail(new CustomException(ErrorCode.BAD_REQUEST,ex.getMessage()));
+    public ResponseEntity<ApiResponse<?>> handleIllegalState(IllegalStateException ex, ServerHttpRequest request) {
+        log.error("[IllegalState] {}", ex.getMessage(), ex);
+        var custom = new CustomException(ErrorCode.BAD_REQUEST, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(custom, request.getPath().value()));
     }
-
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiResponse<?> handleGeneralException(Exception ex) {
-        log.error("[예외 발생] Exception: {}", ex.getMessage());
-        return ApiResponse.fail(new CustomException(ErrorCode.INTERNAL_SERVER_ERROR,ex.getMessage()));
+    public ResponseEntity<ApiResponse<?>> handleGeneral(Exception ex, ServerHttpRequest request) {
+        log.error("[Unhandled] {}", ex.getMessage(), ex);
+        var custom = new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.fail(custom, request.getPath().value()));
     }
-//
-//    @ExceptionHandler(NotVerifiedException.class)
-//    @ResponseStatus(HttpStatus.BAD_REQUEST)
-//    public ApiResponse<?> handleNotVerifiedException(NotVerifiedException ex) {
-//        log.error("[예외 발생] Exception: {}", ex.getMessage());
-//        return ApiResponse.fail(new CustomException(ErrorCode.BAD_REQUEST,ex.getMessage()));
-//    }
 }
