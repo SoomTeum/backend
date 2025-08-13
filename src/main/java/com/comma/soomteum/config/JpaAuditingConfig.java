@@ -1,4 +1,4 @@
-package com.comma.soomteum.Config;
+package com.comma.soomteum.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

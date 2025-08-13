@@ -1,4 +1,4 @@
-package com.comma.soomteum.Config;
+package com.comma.soomteum.config;
 
 
 import io.swagger.v3.oas.models.OpenAPI;

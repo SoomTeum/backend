@@ -1,4 +1,4 @@
-package com.comma.soomteum.Config;
+package com.comma.soomteum.config;
 
 import com.comma.soomteum.domain.auth.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;

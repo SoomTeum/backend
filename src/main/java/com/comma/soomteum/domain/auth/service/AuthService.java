@@ -8,6 +8,8 @@ import com.comma.soomteum.domain.token.entity.Token;
 import com.comma.soomteum.domain.token.repository.TokenRepository;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.user.repository.UserRepository;
+import com.comma.soomteum.global.response.CustomException;
+import com.comma.soomteum.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +35,7 @@ public class AuthService {
         User user = userOptional.orElseGet(() -> userRepository.save(
                 User.builder()
                         .providerId(providerId)
-                        .nickname("임시유저" + providerId)
+                        .nickname("유저" + providerId)
                         .email(email)
                         .isActive(true)
                         .build()
@@ -50,7 +52,7 @@ public class AuthService {
                 .accessToken(tokenDto.getAccessToken())
                 .accessExpiresAt(LocalDateTime.now().plus(jwtTokenManager.getAccessExpiration(), ChronoUnit.MILLIS))
                 .refreshToken(tokenDto.getRefreshToken())
-                .refreshExpiresAt(LocalDateTime.now().plus(jwtTokenManager.getAccessExpiration(), ChronoUnit.MILLIS))
+                .refreshExpiresAt(LocalDateTime.now().plus(jwtTokenManager.getRefreshExpiration(), ChronoUnit.MILLIS))
                 .issuedAt(LocalDateTime.now())
                 .build();
         tokenRepository.save(token);
@@ -68,11 +70,11 @@ public class AuthService {
     public TokenDto reissue(AuthTokenRequestDto requestDto) {
         // 1) DB에서 refreshToken 조회
         Token token = tokenRepository.findByRefreshToken(requestDto.getRefreshToken())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 Refresh Token 입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
         // 2) 리프레시 토큰 검증
         if (!jwtTokenManager.validateToken(token.getRefreshToken())) {
-            throw new RuntimeException("Refresh Token이 유효하지 않습니다.");
+            throw new CustomException(ErrorCode.REFRESH_TOKEN_MISMATCH);
         }
 
         // 3) 새 JWT 생성
