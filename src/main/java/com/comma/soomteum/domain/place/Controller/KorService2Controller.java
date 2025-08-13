@@ -3,7 +3,8 @@ package com.comma.soomteum.domain.place.Controller;
 
 import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.Dto.KorService2Response;
-import com.comma.soomteum.domain.place.Service.KorService2Service;
+import com.comma.soomteum.domain.place.Service.KorAreaService;
+import com.comma.soomteum.domain.place.Service.KorLocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,7 +27,8 @@ import reactor.core.publisher.Mono;
 @Validated
 public class KorService2Controller {
 
-    private final KorService2Service korService2Service;
+    private final KorAreaService areaService;
+    private final KorLocationService locationService;
 
     @Operation(
             summary = "위치기반 관광정보 조회 (/locationBasedList2)",
@@ -45,7 +47,7 @@ public class KorService2Controller {
     ) {
         // DTO 내부의 pageNoOrDefault, rowsOrDefault, arrangeOrDefault 등을
         // 서비스에서 사용 가능 (컨트롤러에서는 그대로 전달)
-        return korService2Service.locationBasedList(req);
+        return locationService.locationBasedList(req);
     }
 
     @Operation(
@@ -63,6 +65,6 @@ public class KorService2Controller {
     public Mono<KorService2Response> areaBasedList(
             @Valid @ParameterObject TourApiRequestDto.AreaBasedList2 req
     ) {
-        return korService2Service.areaBasedList(req);
+        return areaService.areaBasedList(req);
     }
 }
