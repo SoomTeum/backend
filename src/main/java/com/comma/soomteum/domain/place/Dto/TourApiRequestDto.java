@@ -62,6 +62,23 @@ public final class TourApiRequestDto {
     }
 
 
+    // =========================
+    // 3) 상세 관광지 조회: /DetailCommon2
+    // =========================
+    @Getter @Setter
+    @ToString @EqualsAndHashCode
+    @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class DetailCommon2 {
+        private String contentId;
+
+        @Builder.Default private Integer pageNo = 1;
+        @Builder.Default private Integer numOfRows = 1;
+
+        public int pageNoOrDefault() { return pageNo == null ? 1 : pageNo; }
+        public int rowsOrDefault()   { return numOfRows == null ? 1 : numOfRows; }
+    }
+
+
     @Getter @Setter
     @ToString @EqualsAndHashCode
     @NoArgsConstructor @AllArgsConstructor
