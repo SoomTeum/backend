@@ -42,8 +42,6 @@ public class KorService2Controller {
     public Mono<KorService2Response> locationBasedList(
             @ParameterObject TourApiRequestDto.LocationBasedList2 req
     ) {
-        // DTO 내부의 pageNoOrDefault, rowsOrDefault, arrangeOrDefault 등을
-        // 서비스에서 사용 가능 (컨트롤러에서는 그대로 전달)
         return korService2Service.locationBasedList(req);
     }
 }
