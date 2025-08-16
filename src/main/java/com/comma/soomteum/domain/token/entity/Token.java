@@ -43,9 +43,11 @@ public class Token extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public void updateRefreshToken(String refreshToken, LocalDateTime expiresAt) {
+    public void updateTokens(String accessToken, LocalDateTime accessExpiresAt, String refreshToken, LocalDateTime refreshExpiresAt) {
+        this.accessToken = accessToken;
+        this.accessExpiresAt = accessExpiresAt;
         this.refreshToken = refreshToken;
-        this.refreshExpiresAt = expiresAt;
+        this.refreshExpiresAt = refreshExpiresAt;
     }
 
 }
