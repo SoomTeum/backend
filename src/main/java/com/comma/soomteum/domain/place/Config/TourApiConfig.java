@@ -35,28 +35,29 @@ public class TourApiConfig {
         Map<String, WebClient> clients = new HashMap<>();
 
         props.getClients().forEach((key, clientProps) -> {
-
-            // ✅ 값 인코딩 활성화 (serviceKey 등 자동 인코딩)
             DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(clientProps.getBaseUrl());
-            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.TEMPLATE_AND_VALUES);
+            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
+
+            ExchangeFilterFunction reqLog = ExchangeFilterFunction.ofRequestProcessor(req -> {
+                String masked = req.url().toString().replaceAll("(serviceKey=)([^&]+)", "$1****");
+                System.out.println(">> [" + key + "] " + req.method() + " " + masked);
+                System.out.println(">> Accept=" + req.headers().getFirst(HttpHeaders.ACCEPT));
+                return Mono.just(req);
+            });
+
+            ExchangeFilterFunction respLog = ExchangeFilterFunction.ofResponseProcessor(resp -> {
+                System.out.println("<< [" + key + "] Status=" + resp.statusCode());
+                System.out.println("<< Content-Type=" +
+                        resp.headers().asHttpHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
+                return Mono.just(resp);
+            });
 
             WebClient client = WebClient.builder()
                     .uriBuilderFactory(uriFactory)
                     .baseUrl(clientProps.getBaseUrl())
                     .defaultHeaders(h -> h.setAccept(List.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)))
-                    // 요청 로깅
-                    .filter(ExchangeFilterFunction.ofRequestProcessor(req -> {
-                        System.out.println(">> [" + key + "] " + req.method() + " " + req.url());
-                        System.out.println(">> Accept=" + req.headers().getFirst(HttpHeaders.ACCEPT));
-                        return Mono.just(req);
-                    }))
-                    // 응답 로깅
-                    .filter(ExchangeFilterFunction.ofResponseProcessor(resp -> {
-                        System.out.println("<< [" + key + "] Status=" + resp.statusCode());
-                        System.out.println("<< Content-Type=" +
-                                resp.headers().asHttpHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
-                        return Mono.just(resp);
-                    }))
+                    .filter(reqLog)
+                    .filter(respLog)
                     .build();
 
             clients.put(key, client);
@@ -65,21 +66,24 @@ public class TourApiConfig {
         return clients;
     }
 
+    /**
+     * 서비스키 리졸버
+     * - 설정에 인코딩(%.. )된 값이 들어와도 한 번만 디코딩해서 raw로 통일
+     * - 최종 전송 시 인코딩은 UriBuilder가 수행
+     */
     @Bean
     public Function<String, String> tourApiKeyResolver() {
         return key -> {
-            // ✅ props에 이미 %2B 같은 "인코딩된" 키가 있다면 한 번 디코딩해서 '생키'로 사용
-            String k = null;
-            var client = props.getClients().get(key);
-            if (client != null && client.getServiceKey() != null && !client.getServiceKey().isBlank()) {
-                k = client.getServiceKey();
-            } else {
-                k = props.getDefaults().getServiceKey();
-            }
-            if (k != null && k.contains("%")) {
+            var c = props.getClients().get(key);
+            String k = (c != null && c.getServiceKey() != null)
+                    ? c.getServiceKey()
+                    : (props.getDefaults() != null ? props.getDefaults().getServiceKey() : null);
+            if (k == null) return null;
+            // 설정에 인코딩된 키가 들어왔으면 raw로 통일
+            if (k.contains("%")) {
                 try { k = URLDecoder.decode(k, StandardCharsets.UTF_8); } catch (Exception ignore) {}
             }
-            return k; // UriBuilder가 알아서 인코딩해 줍니다.
+            return k; // ★ raw 키 반환 (인코딩은 UriBuilder가 함)
         };
     }
 

@@ -1,6 +1,7 @@
 package com.comma.soomteum.domain.place.Service;
 
 import com.comma.soomteum.domain.place.Config.TourApiProperties;
+import com.comma.soomteum.domain.place.Dto.TourApiErrorResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -35,7 +37,6 @@ public class KorApiCaller {
     private final BiConsumer<UriBuilder, TourApiProperties> commonQueryApplier;
     private final Function<String, String> tourApiKeyResolver;
 
-    // JSON: { "response": {...} } 언랩 ON
     private final ObjectMapper objectMapper = new ObjectMapper();
     {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -43,7 +44,6 @@ public class KorApiCaller {
         objectMapper.findAndRegisterModules();
     }
 
-    // XML 파서
     private final XmlMapper xmlMapper = new XmlMapper();
     {
         xmlMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -54,14 +54,27 @@ public class KorApiCaller {
         WebClient client = Objects.requireNonNull(
                 tourApiClients.get(CLIENT_KEY), "WebClient not found for key: " + CLIENT_KEY);
 
-        String serviceKey = tourApiKeyResolver.apply(CLIENT_KEY);
+        // 입력은 raw(디코딩) 키
+        String rawServiceKey = tourApiKeyResolver.apply(CLIENT_KEY);
 
         return client.get()
                 .uri(b -> {
-                    b.path(path).queryParam("serviceKey", serviceKey);
-                    queryBuilder.accept(b);
-                    commonQueryApplier.accept(b, props); // (_type=json 등 공통 쿼리)
-                    return b.build();
+                    b.path(path);
+                    queryBuilder.accept(b);              // 개별 쿼리
+                    commonQueryApplier.accept(b, props); // MobileOS/MobileApp/_type
+
+                    // 1) 우선 serviceKey 없이 URI를 만든다
+                    URI built = b.build();
+
+                    // 2) serviceKey만 직접 퍼센트 인코딩(+ → %2B, / → %2F, = → %3D)
+                    String encodedKey = java.net.URLEncoder.encode(
+                            rawServiceKey, java.nio.charset.StandardCharsets.UTF_8
+                    );
+
+                    // 3) 최종 URL 문자열에 serviceKey를 붙여서 반환 (재인코딩 방지)
+                    String sep = (built.getQuery() == null || built.getQuery().isEmpty()) ? "?" : "&";
+                    String finalUrl = built.toString() + sep + "serviceKey=" + encodedKey;
+                    return java.net.URI.create(finalUrl);
                 })
                 .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
                 .exchangeToMono(resp -> handleResponse(resp, bodyType))
@@ -88,16 +101,49 @@ public class KorApiCaller {
 
         return resp.bodyToMono(String.class).flatMap(raw -> {
             String body = raw == null ? "" : raw.trim();
-            boolean looksXml = body.startsWith("<"); // 헤더가 틀려도 XML 감지
+            boolean looksXml = body.startsWith("<");
 
+            // OpenAPI 에러(XML/JSON) 우선 파싱
+            try {
+                TourApiErrorResponse err = looksXml
+                        ? xmlMapper.readValue(body, TourApiErrorResponse.class)
+                        : objectMapper.readValue(body, TourApiErrorResponse.class);
+
+                // 편의 getter가 있다면 사용 (getErrorCode/getErrorMsg)
+                String code = null, msg = null;
+                if (err != null) {
+                    try {
+                        code = err.getErrorCode();
+                        msg  = err.getErrorMsg();
+                    } catch (NoSuchMethodError | Exception ignore) {
+                        // 구버전 DTO일 경우 직접 header에서 추출
+                        if (err.getCmmMsgHeader() != null) {
+                            code = err.getCmmMsgHeader().getReturnReasonCode();
+                            msg  = err.getCmmMsgHeader().getErrMsg();
+                            if (msg == null || msg.isBlank()) {
+                                msg = err.getCmmMsgHeader().getReturnAuthMsg();
+                            }
+                        }
+                    }
+                }
+                if (code != null && !code.isBlank()) {
+                    log.error("[{}] Upstream ERROR: {} ({})", CLIENT_KEY, msg, code);
+                    return Mono.error(new RuntimeException(
+                            "TourAPI ERROR: " + (msg == null ? "UNKNOWN" : msg) + " [" + code + "]"));
+                }
+            } catch (Exception ignore) {
+                // 정상 데이터일 수 있으니 무시
+            }
+
+            // 본문 파싱 (XML/JSON 모두 지원)
             try {
                 if ((ct != null && ct.isCompatibleWith(MediaType.APPLICATION_XML)) || looksXml) {
-                    return Mono.just(xmlMapper.readValue(body, bodyType));   // XML → DTO
+                    return Mono.just(xmlMapper.readValue(body, bodyType));
                 } else {
-                    return Mono.just(objectMapper.readValue(body, bodyType)); // JSON → DTO
+                    return Mono.just(objectMapper.readValue(body, bodyType));
                 }
             } catch (Exception first) {
-                try { // 교차 fallback
+                try {
                     if ((ct != null && ct.isCompatibleWith(MediaType.APPLICATION_XML)) || looksXml) {
                         return Mono.just(objectMapper.readValue(body, bodyType));
                     } else {
@@ -126,6 +172,7 @@ public class KorApiCaller {
         public final String body;
         public Upstream4xxException(String msg, String body) { super(msg); this.body = body; }
     }
+
     public static class Upstream5xxException extends RuntimeException {
         public final String body;
         public Upstream5xxException(String msg, String body) { super(msg); this.body = body; }
