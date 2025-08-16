@@ -16,6 +16,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.security.Key;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -51,21 +55,25 @@ public class JwtTokenManager {
 
 
     public TokenDto generateTokens(User user) {
-        long now = (new Date()).getTime();
-        Date accessTokenExpiresIn = new Date(now + this.accessTokenExpirationMilliseconds);
+        Instant now = Instant.now();
+        Instant accessExp = now.plusMillis(accessTokenExpirationMilliseconds);
+        Instant refreshExp = now.plusMillis(refreshTokenExpirationMilliseconds);
+
         String subject = String.valueOf(user.getUserId());
         String authorities = "ROLE_USER";
 
         String accessToken = Jwts.builder()
                 .setSubject(subject)
                 .claim(AUTHORITIES_KEY, authorities)
-                .setExpiration(accessTokenExpiresIn)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(accessExp))
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
         String refreshToken = Jwts.builder()
                 .setSubject(subject)
-                .setExpiration(new Date(now + this.refreshTokenExpirationMilliseconds))
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(refreshExp))
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
@@ -73,6 +81,9 @@ public class JwtTokenManager {
                 .grantType(BEARER_TYPE)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .issuedAt(now)
+                .accessExpiresAt(accessExp)
+                .refreshExpiresAt(refreshExp)
                 .build();
     }
 
@@ -95,6 +106,9 @@ public class JwtTokenManager {
             log.info("잘못된 JWT 서명입니다.");
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다.");
+            log.info("Server Current Time: {}", new java.util.Date());
+            log.info("Token Expiration Time: {}", e.getClaims().getExpiration());
+            log.info("Token Issued At: {}", e.getClaims().getIssuedAt());
         } catch (UnsupportedJwtException e) {
             log.info("지원되지 않는 JWT 토큰입니다.");
         } catch (IllegalArgumentException e) {
