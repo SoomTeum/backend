@@ -2,7 +2,6 @@ package com.comma.soomteum.domain.place.Config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import reactor.core.publisher.Mono;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -34,14 +36,14 @@ public class TourApiConfig {
 
         props.getClients().forEach((key, clientProps) -> {
 
-            // ★ 인코딩 모드 해제된 UriBuilderFactory 생성
+            // ✅ 값 인코딩 활성화 (serviceKey 등 자동 인코딩)
             DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(clientProps.getBaseUrl());
-            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.TEMPLATE_AND_VALUES);
 
             WebClient client = WebClient.builder()
                     .uriBuilderFactory(uriFactory)
                     .baseUrl(clientProps.getBaseUrl())
-                    .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    .defaultHeaders(h -> h.setAccept(List.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)))
                     // 요청 로깅
                     .filter(ExchangeFilterFunction.ofRequestProcessor(req -> {
                         System.out.println(">> [" + key + "] " + req.method() + " " + req.url());
@@ -63,34 +65,35 @@ public class TourApiConfig {
         return clients;
     }
 
-    private org.springframework.http.client.reactive.ReactorClientHttpConnector reactorConnector(int connectMs, int readMs) {
-        var http = reactor.netty.http.client.HttpClient.create()
-                .option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs)
-                .responseTimeout(java.time.Duration.ofMillis(readMs));
-        return new org.springframework.http.client.reactive.ReactorClientHttpConnector(http);
-    }
-
     @Bean
     public Function<String, String> tourApiKeyResolver() {
         return key -> {
+            // ✅ props에 이미 %2B 같은 "인코딩된" 키가 있다면 한 번 디코딩해서 '생키'로 사용
+            String k = null;
             var client = props.getClients().get(key);
             if (client != null && client.getServiceKey() != null && !client.getServiceKey().isBlank()) {
-                return client.getServiceKey();
+                k = client.getServiceKey();
+            } else {
+                k = props.getDefaults().getServiceKey();
             }
-            return props.getDefaults().getServiceKey();
+            if (k != null && k.contains("%")) {
+                try { k = URLDecoder.decode(k, StandardCharsets.UTF_8); } catch (Exception ignore) {}
+            }
+            return k; // UriBuilder가 알아서 인코딩해 줍니다.
         };
     }
 
     @Bean
     public BiConsumer<org.springframework.web.util.UriBuilder, TourApiProperties> commonQueryApplier() {
         return (b, p) -> {
-            if (p.getCommon().getMobileOs() != null) {
-                b.queryParam("MobileOS", p.getCommon().getMobileOs());
-            }
-            if (p.getCommon().getMobileApp() != null) {
-                b.queryParam("MobileApp", p.getCommon().getMobileApp());
-            }
-            b.queryParam("_type", "json");
+            String mobileOs  = (p.getCommon() != null && p.getCommon().getMobileOs()  != null)
+                    ? p.getCommon().getMobileOs()  : "ETC";
+            String mobileApp = (p.getCommon() != null && p.getCommon().getMobileApp() != null)
+                    ? p.getCommon().getMobileApp() : "soomteum";
+
+            b.queryParam("MobileOS",  mobileOs);
+            b.queryParam("MobileApp", mobileApp);
+            b.queryParam("_type",     "json");
         };
     }
 }

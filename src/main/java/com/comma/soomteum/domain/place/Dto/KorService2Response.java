@@ -1,7 +1,10 @@
 package com.comma.soomteum.domain.place.Dto;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import lombok.*;
 
 import java.util.List;
@@ -10,26 +13,23 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JacksonXmlRootElement(localName = "response")   // XML: <response>...</response>
+@JsonRootName("response")                        // JSON: { "response": { ... } }
 public class KorService2Response {
-    private Response response;
 
-    @Data @NoArgsConstructor @AllArgsConstructor
-    public static class Response {
-        private Header header;
-        private Body body;
-    }
+    private Header header;
+    private Body body;
 
     @Getter @Setter
-    @NoArgsConstructor @AllArgsConstructor
-    @Builder
+    @NoArgsConstructor @AllArgsConstructor @Builder
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Header {
         private String resultCode;
         private String resultMsg;
     }
 
-
     @Data @NoArgsConstructor @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Body {
         private Items items;
         private Integer totalCount;
@@ -38,15 +38,16 @@ public class KorService2Response {
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Items {
-        private List<locationBasedListResponseDto> item;
+        @JacksonXmlElementWrapper(useWrapping = false)
+        @JacksonXmlProperty(localName = "item")
+        private List<LocationBasedListResponseDto> item;
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
+    @Data @NoArgsConstructor @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class locationBasedListResponseDto {
+    public static class LocationBasedListResponseDto {
         private String title;
         private String contentid;
         private String cat1;
