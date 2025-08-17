@@ -3,12 +3,14 @@ package com.comma.soomteum.domain.place.Controller;
 
 import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.Dto.KorService2Response;
-import com.comma.soomteum.domain.place.Service.KorService2Service;
+import com.comma.soomteum.domain.place.Service.KorAreaService;
+import com.comma.soomteum.domain.place.Service.KorLocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.MediaType;
@@ -25,7 +27,8 @@ import reactor.core.publisher.Mono;
 @Validated
 public class KorService2Controller {
 
-    private final KorService2Service korService2Service;
+    private final KorAreaService areaService;
+    private final KorLocationService locationService;
 
     @Operation(
             summary = "위치기반 관광정보 조회 (/locationBasedList2)",
@@ -34,14 +37,30 @@ public class KorService2Controller {
             responses = {
                     @ApiResponse(responseCode = "200", description = "성공",
                             content = @Content(schema = @Schema(implementation = KorService2Response.class))),
-                    @ApiResponse(responseCode = "400", description = "요청 파라미터 오류"),
-                    @ApiResponse(responseCode = "500", description = "서버 오류")
             }
     )
     @GetMapping("/location-based")
     public Mono<KorService2Response> locationBasedList(
-            @ParameterObject TourApiRequestDto.LocationBasedList2 req
+            @Valid @ParameterObject TourApiRequestDto.LocationBasedList2 req
     ) {
-        return korService2Service.locationBasedList(req);
+        // DTO 내부의 pageNoOrDefault, rowsOrDefault, arrangeOrDefault 등을
+        // 서비스에서 사용 가능 (컨트롤러에서는 그대로 전달)
+        return locationService.locationBasedList(req);
+    }
+
+    @Operation(
+            summary = "지역기반 관광정보 조회 (/areaBasedList2)",
+            description = "지역과 테마를 기반으로 관광지를 조회합니다. "
+                    + " 옵션: cat1/cat2(분류), pageNo/numOfRows(페이징), arrange(정렬; 기본값 서비스 내부 적용)",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "성공",
+                            content = @Content(schema = @Schema(implementation = KorService2Response.class))),
+            }
+    )
+    @GetMapping(path = "/area-based")
+    public Mono<KorService2Response> areaBasedList(
+            @Valid @ParameterObject TourApiRequestDto.AreaBasedList2 req
+    ) {
+        return areaService.areaBasedList(req);
     }
 }

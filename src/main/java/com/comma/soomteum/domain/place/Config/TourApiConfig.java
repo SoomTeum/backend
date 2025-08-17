@@ -2,7 +2,6 @@ package com.comma.soomteum.domain.place.Config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import reactor.core.publisher.Mono;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -33,28 +35,29 @@ public class TourApiConfig {
         Map<String, WebClient> clients = new HashMap<>();
 
         props.getClients().forEach((key, clientProps) -> {
-
-            // ★ 인코딩 모드 해제된 UriBuilderFactory 생성
             DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory(clientProps.getBaseUrl());
-            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+            uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.URI_COMPONENT);
+
+            ExchangeFilterFunction reqLog = ExchangeFilterFunction.ofRequestProcessor(req -> {
+                String masked = req.url().toString().replaceAll("(serviceKey=)([^&]+)", "$1****");
+                System.out.println(">> [" + key + "] " + req.method() + " " + masked);
+                System.out.println(">> Accept=" + req.headers().getFirst(HttpHeaders.ACCEPT));
+                return Mono.just(req);
+            });
+
+            ExchangeFilterFunction respLog = ExchangeFilterFunction.ofResponseProcessor(resp -> {
+                System.out.println("<< [" + key + "] Status=" + resp.statusCode());
+                System.out.println("<< Content-Type=" +
+                        resp.headers().asHttpHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
+                return Mono.just(resp);
+            });
 
             WebClient client = WebClient.builder()
                     .uriBuilderFactory(uriFactory)
                     .baseUrl(clientProps.getBaseUrl())
-                    .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                    // 요청 로깅
-                    .filter(ExchangeFilterFunction.ofRequestProcessor(req -> {
-                        System.out.println(">> [" + key + "] " + req.method() + " " + req.url());
-                        System.out.println(">> Accept=" + req.headers().getFirst(HttpHeaders.ACCEPT));
-                        return Mono.just(req);
-                    }))
-                    // 응답 로깅
-                    .filter(ExchangeFilterFunction.ofResponseProcessor(resp -> {
-                        System.out.println("<< [" + key + "] Status=" + resp.statusCode());
-                        System.out.println("<< Content-Type=" +
-                                resp.headers().asHttpHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
-                        return Mono.just(resp);
-                    }))
+                    .defaultHeaders(h -> h.setAccept(List.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)))
+                    .filter(reqLog)
+                    .filter(respLog)
                     .build();
 
             clients.put(key, client);
@@ -63,34 +66,38 @@ public class TourApiConfig {
         return clients;
     }
 
-    private org.springframework.http.client.reactive.ReactorClientHttpConnector reactorConnector(int connectMs, int readMs) {
-        var http = reactor.netty.http.client.HttpClient.create()
-                .option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs)
-                .responseTimeout(java.time.Duration.ofMillis(readMs));
-        return new org.springframework.http.client.reactive.ReactorClientHttpConnector(http);
-    }
-
+    /**
+     * 서비스키 리졸버
+     * - 설정에 인코딩(%.. )된 값이 들어와도 한 번만 디코딩해서 raw로 통일
+     * - 최종 전송 시 인코딩은 UriBuilder가 수행
+     */
     @Bean
     public Function<String, String> tourApiKeyResolver() {
         return key -> {
-            var client = props.getClients().get(key);
-            if (client != null && client.getServiceKey() != null && !client.getServiceKey().isBlank()) {
-                return client.getServiceKey();
+            var c = props.getClients().get(key);
+            String k = (c != null && c.getServiceKey() != null)
+                    ? c.getServiceKey()
+                    : (props.getDefaults() != null ? props.getDefaults().getServiceKey() : null);
+            if (k == null) return null;
+            // 설정에 인코딩된 키가 들어왔으면 raw로 통일
+            if (k.contains("%")) {
+                try { k = URLDecoder.decode(k, StandardCharsets.UTF_8); } catch (Exception ignore) {}
             }
-            return props.getDefaults().getServiceKey();
+            return k; // ★ raw 키 반환 (인코딩은 UriBuilder가 함)
         };
     }
 
     @Bean
     public BiConsumer<org.springframework.web.util.UriBuilder, TourApiProperties> commonQueryApplier() {
         return (b, p) -> {
-            if (p.getCommon().getMobileOs() != null) {
-                b.queryParam("MobileOS", p.getCommon().getMobileOs());
-            }
-            if (p.getCommon().getMobileApp() != null) {
-                b.queryParam("MobileApp", p.getCommon().getMobileApp());
-            }
-            b.queryParam("_type", "json");
+            String mobileOs  = (p.getCommon() != null && p.getCommon().getMobileOs()  != null)
+                    ? p.getCommon().getMobileOs()  : "ETC";
+            String mobileApp = (p.getCommon() != null && p.getCommon().getMobileApp() != null)
+                    ? p.getCommon().getMobileApp() : "soomteum";
+
+            b.queryParam("MobileOS",  mobileOs);
+            b.queryParam("MobileApp", mobileApp);
+            b.queryParam("_type",     "json");
         };
     }
 }
