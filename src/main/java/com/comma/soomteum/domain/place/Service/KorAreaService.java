@@ -28,8 +28,6 @@ public class KorAreaService {
             qpIfPresent(b, "sigunguCode", req.getSigunguCode());
             qpIfPresent(b, "cat1", req.getCat1());
             qpIfPresent(b, "cat2", req.getCat2());
-            qpIfPresent(b, "cat3", req.getCat3());
-            qpIfPresent(b, "contentTypeId", req.getContentTypeId());
         }, KorService2Response.class);
     }
 }
