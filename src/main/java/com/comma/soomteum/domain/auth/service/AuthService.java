@@ -44,6 +44,19 @@ public class AuthService {
                 user.getUpdatedAt() != null &&
                 user.getCreatedAt().equals(user.getUpdatedAt());
 
+        return issueTokensAndSave(user, isNewUser);
+    }
+
+    @Transactional
+    public LoginResponseDto devLogin(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 개발자 로그인은 항상 기존 유저로 간주
+        return issueTokensAndSave(user, false);
+    }
+
+    private LoginResponseDto issueTokensAndSave(User user, boolean isNewUser) {
         TokenDto tokenDto = jwtTokenManager.generateTokens(user);
 
         // Instant -> LocalDateTime 변환 (서버 표준 Zone 사용)
