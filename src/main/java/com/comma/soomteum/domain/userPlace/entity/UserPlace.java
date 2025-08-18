@@ -1,4 +1,4 @@
-package com.comma.soomteum.domain.userattraction.entity;
+package com.comma.soomteum.domain.userPlace.entity;
 
 import com.comma.soomteum.domain.BaseEntity;
 import com.comma.soomteum.domain.place.entity.Place;
@@ -12,15 +12,17 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class UserAttraction extends BaseEntity {
+public class UserPlace extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userContentId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserAttractionType type;
+    @Column(name = "save", nullable = false)
+    private boolean save;
+
+    @Column(name = "like", nullable = false)
+    private boolean like;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
