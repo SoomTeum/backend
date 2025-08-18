@@ -16,6 +16,19 @@ public class Region extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long regionId;
 
-    @Column(length = 100, nullable = false)
+    @Column(length = 20, nullable = false)
     private String name;
+
+    @Column(name = "kor_area_code", nullable = false)
+    private int korAreaCode;   // 국문 관광 서비스 지역코드
+
+    @Column(name = "kor_sigungu_code", nullable = false)
+    private int korSigunguCode;   // 국문 관광 서비스 시군구 코드
+
+    @Column(name = "cnctr_area_code", nullable = false)
+    private int cnctrAreaCode;   // 집중률 지역 코드
+
+    @Column(name = "cnctr_sigungu_code", nullable = false)
+    private int cnctrSigunguCode;   // 집중률 시군구 코드
+
 }
