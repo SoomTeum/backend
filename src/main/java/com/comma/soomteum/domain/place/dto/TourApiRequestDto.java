@@ -1,4 +1,4 @@
-package com.comma.soomteum.domain.place.Dto;
+package com.comma.soomteum.domain.place.dto;
 
 import lombok.*;
 

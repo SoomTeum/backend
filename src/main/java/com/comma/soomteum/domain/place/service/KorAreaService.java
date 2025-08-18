@@ -1,12 +1,12 @@
-package com.comma.soomteum.domain.place.Service;
+package com.comma.soomteum.domain.place.service;
 
-import com.comma.soomteum.domain.place.Dto.KorService2Response;
-import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
+import com.comma.soomteum.domain.place.dto.KorService2Response;
+import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static com.comma.soomteum.domain.place.Service.KorApiCaller.qpIfPresent;
+import static com.comma.soomteum.domain.place.service.KorApiCaller.qpIfPresent;
 
 @Service
 @RequiredArgsConstructor
