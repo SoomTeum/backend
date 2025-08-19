@@ -3,6 +3,7 @@ package com.comma.soomteum.domain.userPlace.entity;
 import com.comma.soomteum.domain.BaseEntity;
 import com.comma.soomteum.domain.place.entity.Place;
 import com.comma.soomteum.domain.user.entity.User;
+import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,11 +19,9 @@ public class UserPlace extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userContentId;
 
-    @Column(name = "save", nullable = false)
-    private boolean save;
-
-    @Column(name = "like", nullable = false)
-    private boolean like;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserActionType type;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
