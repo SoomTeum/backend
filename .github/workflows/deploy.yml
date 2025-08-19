@@ -1,62 +1,61 @@
-# .github/workflows/deploy.yml
-name: CI/CD Deploy to EC2
-
-# 이벤트 트리거: dev 브랜치에 push 발생 시 실행
+name: deploy
 on:
-  pull_request:
-    branches:
-      - dev
   push:
-    branches:
-      - dev
+    branches: [ dev ]
+  workflow_dispatch:
 
 jobs:
-  build-push-deploy:
-    name: Build, Push Docker Image and Deploy to EC2
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: deploy-soomteum
+      cancel-in-progress: true
 
     steps:
-      # Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # Set up JDK 17 (Spring 프로젝트용)
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      # 1) OIDC로 AWS 자격 구성
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # Add Permission
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      # 2) ECR 로그인
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-      # Build with Gradle
-      - name: Build with Gradle
-        run: ./gradlew build -x test
-
-      # Log in to DockerHub
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Build Docker image
-      - name: Build Docker image
-        run: docker build -t lilloo04/soomteum:latest .
-
-      # Push Docker image
-      - name: Push Docker image
-        run: docker push lilloo04/soomteum:latest
-
-      # Set up SSH agent
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      # Deploy to EC2 (pull & run 최신 이미지)
-      - name: Deploy to EC2
+      # 3) Spring Boot 이미지 Build & Push (:latest + :sha7)
+      - name: Build and Push
+        env:
+          ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          REGION:  ${{ secrets.AWS_REGION }}
+          REPO:    ${{ secrets.ECR_REPO }}
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} 'bash ~/deploy.sh'
+          IMAGE=$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO
+          TAG=${GITHUB_SHA::7}
+          docker build -t $IMAGE:$TAG -t $IMAGE:latest .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      # 4) SSM으로 EC2에 배포 (compose가 ${IMAGE_TAG:-latest} 사용)
+      - name: Deploy on EC2 via SSM
+        run: |
+          CMD='aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+                | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com \
+              && cd /srv/caddy \
+              && export IMAGE_TAG=${{ env.TAG }} \
+              && docker compose pull app \
+              && docker compose up -d app \
+              && docker image prune -f'
+          aws ssm send-command \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --region ${{ secrets.AWS_REGION }} \
+            --document-name "AWS-RunShellScript" \
+            --comment "soomteum deploy ${{ env.TAG }}" \
+            --parameters commands=["$CMD"]
+
