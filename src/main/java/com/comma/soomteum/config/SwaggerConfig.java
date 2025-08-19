@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -70,7 +71,7 @@ public class SwaggerConfig {
 
     // KOR Service2 그룹
     @Bean
-    GroupedOpenApi korGroup(OpenApiCustomizer commonErrorResponses) {
+    GroupedOpenApi korGroup(@Qualifier("commonErrorResponses") OpenApiCustomizer commonErrorResponses) {
         return GroupedOpenApi.builder()
                 .group("KOR Service2")
                 .pathsToMatch("/api/kor/**")
@@ -80,7 +81,7 @@ public class SwaggerConfig {
 
     // Auth(카카오) 그룹
     @Bean
-    GroupedOpenApi authGroup(OpenApiCustomizer commonErrorResponses) {
+    GroupedOpenApi authGroup(@Qualifier("commonErrorResponses") OpenApiCustomizer commonErrorResponses) {
         return GroupedOpenApi.builder()
                 .group("Auth")
                 .pathsToMatch("/api/auth/**")
