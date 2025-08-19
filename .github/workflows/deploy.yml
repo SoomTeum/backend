@@ -48,7 +48,7 @@ jobs:
       # 4) SSM Online 대기
       - name: Wait until SSM is Online
         run: |
-          for i in {1..30}; do
+          for i in {1..5}; do
             STATUS=$(aws ssm describe-instance-information \
               --query "InstanceInformationList[?InstanceId=='${{ secrets.EC2_INSTANCE_ID }}'].PingStatus" \
               --output text || true)
@@ -56,7 +56,7 @@ jobs:
               echo "SSM Online"
               exit 0
             fi
-            echo "SSM status: $STATUS (retry $i/30)"
+            echo "SSM status: $STATUS (retry $i/5)"
             sleep 10
           done
           echo "SSM not Online"
