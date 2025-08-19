@@ -1,12 +1,11 @@
-package com.comma.soomteum.domain.place.Controller;
+package com.comma.soomteum.domain.place.controller;
 
-
-import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
-import com.comma.soomteum.domain.place.Dto.KorService2Response;
-import com.comma.soomteum.domain.place.Dto.response.PlaceDetailResponseDto;
-import com.comma.soomteum.domain.place.Service.KorAreaService;
-import com.comma.soomteum.domain.place.Service.KorDetailService;
-import com.comma.soomteum.domain.place.Service.KorLocationService;
+import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
+import com.comma.soomteum.domain.place.dto.KorService2Response;
+import com.comma.soomteum.domain.place.service.KorAreaService;
+import com.comma.soomteum.domain.place.service.KorDetailService;
+import com.comma.soomteum.domain.place.service.KorLocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

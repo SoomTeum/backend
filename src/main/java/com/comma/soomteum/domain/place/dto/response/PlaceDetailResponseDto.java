@@ -1,4 +1,4 @@
-package com.comma.soomteum.domain.place.Dto.response;
+package com.comma.soomteum.domain.place.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;

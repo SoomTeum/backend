@@ -1,12 +1,7 @@
-package com.comma.soomteum.domain.place.Dto;
+package com.comma.soomteum.domain.place.dto;
 
 import lombok.*;
 
-/**
- * TourAPI 요청 DTO 모음 (중첩 static DTO)
- * - Spring MVC 바인딩 고려: @NoArgsConstructor + @Setter 포함
- * - 서비스 내부 빌더 사용도 가능: @Builder
- */
 public final class TourApiRequestDto {
 
     private TourApiRequestDto() {}
@@ -29,6 +24,7 @@ public final class TourApiRequestDto {
         @Builder.Default private Integer pageNo = 1;
         @Builder.Default private Integer numOfRows = 20;
         @Builder.Default private String arrange = "E"; // 정렬코드 (A=제목순,C=수정일순, D=생성일순, E=거리순)
+        @Builder.Default private String _type = "json";
 
         // 편의 기본값 (null 방어)
         public int pageNoOrDefault() { return pageNo == null ? 1 : pageNo; }
@@ -49,16 +45,15 @@ public final class TourApiRequestDto {
         private Integer sigunguCode;      // 시/군/구 코드
         private String cat1;
         private String cat2;
-        private String cat3;
-        private Integer contentTypeId;
 
         @Builder.Default private Integer pageNo = 1;
         @Builder.Default private Integer numOfRows = 20;
+        @Builder.Default private String _type = "json";
         private String arrange;
 
         public int pageNoOrDefault() { return pageNo == null ? 1 : pageNo; }
         public int rowsOrDefault()   { return numOfRows == null ? 20 : numOfRows; }
-        public String arrangeOrDefault() { return (arrange == null || arrange.isBlank()) ? "A" : arrange; } // 기본 가정
+        public String arrangeOrDefault() { return (arrange == null || arrange.isBlank()) ? "A" : arrange; }
     }
 
 

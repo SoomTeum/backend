@@ -1,8 +1,9 @@
-package com.comma.soomteum.domain.userattraction.entity;
+package com.comma.soomteum.domain.userPlace.entity;
 
 import com.comma.soomteum.domain.BaseEntity;
 import com.comma.soomteum.domain.place.entity.Place;
 import com.comma.soomteum.domain.user.entity.User;
+import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class UserAttraction extends BaseEntity {
+public class UserPlace extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +21,7 @@ public class UserAttraction extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserAttractionType type;
+    private UserActionType type;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

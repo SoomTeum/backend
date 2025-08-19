@@ -1,7 +1,8 @@
-package com.comma.soomteum.domain.place.Service;
+package com.comma.soomteum.domain.place.service;
 
-import com.comma.soomteum.domain.place.Dto.TourApiRequestDto;
-import com.comma.soomteum.domain.place.Dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;

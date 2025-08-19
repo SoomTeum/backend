@@ -6,6 +6,8 @@ import com.comma.soomteum.domain.theme.entity.Theme;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "place")
 @Getter
@@ -20,6 +22,12 @@ public class Place extends BaseEntity {
 
     @Column(length = 255, nullable = false)
     private String contentId;
+
+    @Column(length = 100, nullable = false)
+    private BigDecimal cnctrLevel;
+
+    @Column(nullable = false)
+    private Long likeCount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)
