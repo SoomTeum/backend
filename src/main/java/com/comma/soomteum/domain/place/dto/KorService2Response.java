@@ -54,5 +54,7 @@ public class KorService2Response {
         private String cat2;
         private String firstimage;
         private String dist;
+        private String areacode;
+        private String sigungucode;
     }
 }
