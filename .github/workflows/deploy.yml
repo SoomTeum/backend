@@ -2,6 +2,9 @@ name: deploy
 on:
   push:
     branches: [ dev ]
+  pull_request:
+    branches: [ dev ]   # ← 이 줄 추가
+    types: [ opened, reopened, synchronize, ready_for_review ]
   workflow_dispatch:
 
 jobs:
