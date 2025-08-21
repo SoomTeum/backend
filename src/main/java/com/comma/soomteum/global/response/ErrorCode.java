@@ -53,6 +53,7 @@ public enum ErrorCode {
     POST_TYPE_NOT_FOUND(404_004, HttpStatus.NOT_FOUND, "게시글 타입을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND(404_005, HttpStatus.NOT_FOUND, "요청한 댓글을 찾을 수 없습니다."),
     PRODUCT_NOT_FOUND(404_006, HttpStatus.NOT_FOUND, "해당 상품을 찾을 수 없습니다."),
+    REGION_NOT_FOUND(404_007, HttpStatus.NOT_FOUND, "해당 지역을 찾을 수 없습니다."),
 
     // ========================
     // 409 Conflict
@@ -70,7 +71,10 @@ public enum ErrorCode {
     // 502 Bad Gateway (외부 API 오류)
     // ========================
     TOUR_API_CLIENT_ERROR(502_001, HttpStatus.BAD_GATEWAY, "외부 관광 API 클라이언트 오류 발생"),
-    TOUR_API_SERVER_ERROR(502_002, HttpStatus.BAD_GATEWAY, "외부 관광 API 서버 오류 발생");
+    TOUR_API_SERVER_ERROR(502_002, HttpStatus.BAD_GATEWAY, "외부 관광 API 서버 오류 발생")
+
+    ;
+
 
 
     // 기타 공통
