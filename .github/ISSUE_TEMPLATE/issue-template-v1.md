@@ -1,6 +1,6 @@
 ---
-name: Custom issue template
-about: 이슈템플릿입니다
+name: 이슈템플릿 (체크리스트)
+about: 체크리스트 형식의 이슈템플릿입니다
 title: ''
 labels: ''
 assignees: ''
