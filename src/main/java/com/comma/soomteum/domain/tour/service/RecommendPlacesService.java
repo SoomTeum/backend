@@ -44,7 +44,7 @@ public class RecommendPlacesService {
                     errorDto.setCat2(place.getCat2());
                     errorDto.setFirstimage(place.getFirstimage());
                     errorDto.setDist(place.getDist());
-                    errorDto.setCnctrRate("-1"); // Default value for error
+                    errorDto.setCnctrRate("-2"); // Default value for error
                     return Mono.just(errorDto);
                 });
     }

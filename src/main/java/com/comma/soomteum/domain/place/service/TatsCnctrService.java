@@ -85,7 +85,7 @@ public class TatsCnctrService {
                                         })
                                         .next()
                                         .switchIfEmpty(Mono.fromSupplier(() -> {
-                                            log.warn("[TatsCnctr] 모든 후보 코드로 조회 실패 → 0 반환");
+                                            log.warn("[TatsCnctr] 모든 후보 코드로 조회 실패 → -1 반환");
                                             var d = new TatsCnctrResponse.TatsCnctrResponseDto();
                                             d.setCnctrRate("-1");
                                             return d;
@@ -94,16 +94,16 @@ public class TatsCnctrService {
                 })
                 .timeout(OVERALL_TIMEOUT)
                 .onErrorResume(TimeoutException.class, e -> {
-                    log.error("[TatsCnctr] 전체 타임아웃 초과({}s) → 0 반환",
+                    log.error("[TatsCnctr] 전체 타임아웃 초과({}s) → -2 반환",
                             OVERALL_TIMEOUT.toSeconds(), e);
                     var d = new TatsCnctrResponse.TatsCnctrResponseDto();
-                    d.setCnctrRate("-1");
+                    d.setCnctrRate("-2");
                     return Mono.just(d);
                 })
                 .onErrorResume(e -> {
-                    log.error("[TatsCnctr] 처리 중 예외 발생 → 0 반환", e);
+                    log.error("[TatsCnctr] 처리 중 예외 발생 → -2 반환", e);
                     var d = new TatsCnctrResponse.TatsCnctrResponseDto();
-                    d.setCnctrRate("-1");
+                    d.setCnctrRate("-2");
                     return Mono.just(d);
                 });
     }
