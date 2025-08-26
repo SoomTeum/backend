@@ -1,9 +1,10 @@
 package com.comma.soomteum.domain.place.controller;
 
-
+import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.KorService2Response;
 import com.comma.soomteum.domain.place.service.KorAreaService;
+import com.comma.soomteum.domain.place.service.KorDetailService;
 import com.comma.soomteum.domain.place.service.KorLocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,6 +30,7 @@ public class KorService2Controller {
 
     private final KorAreaService areaService;
     private final KorLocationService locationService;
+    private final KorDetailService detailService;
 
     @Operation(
             summary = "위치기반 관광정보 조회 (/locationBasedList2)",
@@ -62,5 +64,19 @@ public class KorService2Controller {
             @Valid @ParameterObject TourApiRequestDto.AreaBasedList2 req
     ) {
         return areaService.areaBasedList(req);
+    }
+
+    @Operation(
+            summary = "여행지 공통정보 조회 (/detailCommon2)",
+            description = "contentId로 공통정보를 조회하고, 이름/대표이미지/위치/주소/소개만 추려 반환합니다."
+    )
+    @ApiResponse(responseCode = "200", description = "성공",
+            content = @Content(schema = @Schema(implementation = PlaceDetailResponseDto.class)))
+
+    @GetMapping("/detail")
+    public Mono<PlaceDetailResponseDto> detail(
+            @Valid @ParameterObject TourApiRequestDto.DetailCommon2 req
+    ) {
+        return detailService.getDetail(req);
     }
 }
