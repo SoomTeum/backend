@@ -53,11 +53,14 @@ public enum ErrorCode {
     POST_TYPE_NOT_FOUND(404_004, HttpStatus.NOT_FOUND, "게시글 타입을 찾을 수 없습니다."),
     COMMENT_NOT_FOUND(404_005, HttpStatus.NOT_FOUND, "요청한 댓글을 찾을 수 없습니다."),
     PRODUCT_NOT_FOUND(404_006, HttpStatus.NOT_FOUND, "해당 상품을 찾을 수 없습니다."),
+    PLACE_NOT_FOUND(404_007, HttpStatus.NOT_FOUND, "해당 장소를 찾을 수 없습니다."),
 
     // ========================
     // 409 Conflict
     // ========================
     DUPLICATE_EMAIL(409_001, HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    ALREADY_LIKED_PLACE(409_002, HttpStatus.CONFLICT, "이미 좋아요를 누른 장소입니다."),
+    NOT_LIKED_PLACE(409_003, HttpStatus.CONFLICT, "좋아요를 누르지 않은 장소입니다."),
 
 
     // ========================

@@ -23,7 +23,7 @@ public class Place extends BaseEntity {
     @Column(length = 255, nullable = false)
     private String contentId;
 
-    @Column(length = 100, nullable = false)
+    @Column(length = 100, nullable = true)
     private BigDecimal cnctrLevel;
 
     @Column(nullable = false)
@@ -36,4 +36,12 @@ public class Place extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "theme_id", nullable = false)
     private Theme theme;
+
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount--;
+    }
 }
