@@ -25,4 +25,8 @@ public class User extends BaseEntity {
     private String email;
 
     private Boolean isActive;
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }
