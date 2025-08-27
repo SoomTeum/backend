@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.http.HttpMethod;
 
 import java.io.IOException;
 
@@ -44,6 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws IOException, ServletException {
+
+        // CORS preflight는 인증 검사 없이 바로 통과
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            if (log.isDebugEnabled()) {
+                log.debug("[JWT] Preflight bypass. uri={}, thread={}", request.getRequestURI(), Thread.currentThread().getName());
+            }
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // 이미 다른 필터/디스패치에서 인증된 경우 중복 작업을 피함
         var context = SecurityContextHolder.getContext();
