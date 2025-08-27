@@ -4,7 +4,11 @@ import com.comma.soomteum.domain.place.config.TourApiProperties;
 import com.comma.soomteum.domain.place.dto.TourApiErrorResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.CoercionAction;
+import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
+import com.fasterxml.jackson.databind.type.LogicalType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,9 +30,10 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 @Component
 @Slf4j
-public class KorApiCaller {
+public class TatsCnctrApiCaller {
 
-    private static final String CLIENT_KEY = "korService2";
+    private static final String CLIENT_KEY = "TatsCnctrRateService";
+    private static final String SERVICE_KEY_OWNER = "korService2";
 
     @Qualifier("tourApiClients")
     private final Map<String, WebClient> tourApiClients;
@@ -37,46 +42,50 @@ public class KorApiCaller {
     private final BiConsumer<UriBuilder, TourApiProperties> commonQueryApplier;
     private final Function<String, String> tourApiKeyResolver;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    {
+    private final ObjectMapper objectMapper; // JSON 전용으로 사용
+
+    @PostConstruct
+    void setupMappers() {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.UNWRAP_ROOT_VALUE, true);
+        objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
         objectMapper.findAndRegisterModules();
+
+        objectMapper
+                .coercionConfigFor(LogicalType.POJO)
+                .setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
     }
 
-    private final XmlMapper xmlMapper = new XmlMapper();
-    {
-        xmlMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        xmlMapper.findAndRegisterModules();
-    }
-
+    /**
+     * TatsCnctrRateService GET 호출 - JSON 고정
+     */
     public <T> Mono<T> get(String path, Consumer<UriBuilder> queryBuilder, Class<T> bodyType) {
         WebClient client = Objects.requireNonNull(
                 tourApiClients.get(CLIENT_KEY), "WebClient not found for key: " + CLIENT_KEY);
 
-        // 입력은 raw(디코딩) 키
-        String rawServiceKey = tourApiKeyResolver.apply(CLIENT_KEY);
+        String rawServiceKey = tourApiKeyResolver.apply(SERVICE_KEY_OWNER);
 
         return client.get()
                 .uri(b -> {
                     b.path(path);
-                    queryBuilder.accept(b);              // 개별 쿼리
-                    commonQueryApplier.accept(b, props); // MobileOS/MobileApp/_type
+                    queryBuilder.accept(b);
 
-                    // 1) 우선 serviceKey 없이 URI를 만든다
+                    // 공통 파라미터 적용
+                    commonQueryApplier.accept(b, props);
+
+                    // JSON 강제 (_type=json 없을 가능성 대비해서 항상 세팅)
+                    b.queryParam("_type", "json");
+
                     URI built = b.build();
 
-                    // 2) serviceKey만 직접 퍼센트 인코딩(+ → %2B, / → %2F, = → %3D)
                     String encodedKey = java.net.URLEncoder.encode(
-                            rawServiceKey, java.nio.charset.StandardCharsets.UTF_8
-                    );
-
-                    // 3) 최종 URL 문자열에 serviceKey를 붙여서 반환 (재인코딩 방지)
+                            rawServiceKey, java.nio.charset.StandardCharsets.UTF_8);
                     String sep = (built.getQuery() == null || built.getQuery().isEmpty()) ? "?" : "&";
-                    String finalUrl = built.toString() + sep + "serviceKey=" + encodedKey;
+                    String finalUrl = built + sep + "serviceKey=" + encodedKey;
                     return java.net.URI.create(finalUrl);
                 })
-                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
+                // JSON만 허용
+                .accept(MediaType.APPLICATION_JSON)
                 .exchangeToMono(resp -> handleResponse(resp, bodyType))
                 .doOnSubscribe(s -> log.debug(">> [{}] GET {}", CLIENT_KEY, path))
                 .doOnError(WebClientResponseException.class,
@@ -97,70 +106,53 @@ public class KorApiCaller {
                     .flatMap(body -> Mono.error(new Upstream5xxException("TourAPI 5xx", body)));
         }
 
-        MediaType ct = resp.headers().contentType().orElse(null);
+        // 본문 문자열로 받고 JSON으로만 파싱
+        return resp.bodyToMono(String.class)
+                .defaultIfEmpty("")
+                .map(String::trim)
+                .flatMap(body -> {
+                    // (선택) 서버가 XML/텍스트로 잘못 내려주면 경고
+                    resp.headers().contentType().ifPresent(ct -> {
+                        if (!MediaType.APPLICATION_JSON.includes(ct)) {
+                            log.warn("[{}] Non-JSON Content-Type reported: {} (forcing JSON parse)", CLIENT_KEY, ct);
+                        }
+                    });
 
-        return resp.bodyToMono(String.class).flatMap(raw -> {
-            String body = raw == null ? "" : raw.trim();
-            boolean looksXml = body.startsWith("<");
-
-            // OpenAPI 에러(XML/JSON) 우선 파싱
-            try {
-                TourApiErrorResponse err = looksXml
-                        ? xmlMapper.readValue(body, TourApiErrorResponse.class)
-                        : objectMapper.readValue(body, TourApiErrorResponse.class);
-
-                // 편의 getter가 있다면 사용 (getErrorCode/getErrorMsg)
-                String code = null, msg = null;
-                if (err != null) {
+                    // 1) Upstream 에러 포맷(JSON) 시도
                     try {
-                        code = err.getErrorCode();
-                        msg  = err.getErrorMsg();
-                    } catch (NoSuchMethodError | Exception ignore) {
-                        // 구버전 DTO일 경우 직접 header에서 추출
-                        if (err.getCmmMsgHeader() != null) {
-                            code = err.getCmmMsgHeader().getReturnReasonCode();
-                            msg  = err.getCmmMsgHeader().getErrMsg();
-                            if (msg == null || msg.isBlank()) {
-                                msg = err.getCmmMsgHeader().getReturnAuthMsg();
+                        TourApiErrorResponse err = objectMapper.readValue(body, TourApiErrorResponse.class);
+                        String code = null, msg = null;
+                        if (err != null) {
+                            try {
+                                code = err.getErrorCode();
+                                msg  = err.getErrorMsg();
+                            } catch (Exception ignore) {
+                                if (err.getCmmMsgHeader() != null) {
+                                    code = err.getCmmMsgHeader().getReturnReasonCode();
+                                    msg  = err.getCmmMsgHeader().getErrMsg();
+                                    if (msg == null || msg.isBlank()) {
+                                        msg = err.getCmmMsgHeader().getReturnAuthMsg();
+                                    }
+                                }
                             }
                         }
+                        if (code != null && !code.isBlank()) {
+                            log.error("[{}] Upstream ERROR: {} ({})", CLIENT_KEY, msg, code);
+                            return Mono.error(new RuntimeException(
+                                    "TourAPI ERROR: " + (msg == null ? "UNKNOWN" : msg) + " [" + code + "]"));
+                        }
+                    } catch (Exception ignore) {
+                        // 정상 데이터일 수 있으니 무시
                     }
-                }
-                if (code != null && !code.isBlank()) {
-                    log.error("[{}] Upstream ERROR: {} ({})", CLIENT_KEY, msg, code);
-                    return Mono.error(new RuntimeException(
-                            "TourAPI ERROR: " + (msg == null ? "UNKNOWN" : msg) + " [" + code + "]"));
-                }
-            } catch (Exception ignore) {
-                // 정상 데이터일 수 있으니 무시
-            }
 
-            // 본문 파싱 (XML/JSON 모두 지원)
-            try {
-                if ((ct != null && ct.isCompatibleWith(MediaType.APPLICATION_XML)) || looksXml) {
-                    return Mono.just(xmlMapper.readValue(body, bodyType));
-                } else {
-                    return Mono.just(objectMapper.readValue(body, bodyType));
-                }
-            } catch (Exception first) {
-                try {
-                    if ((ct != null && ct.isCompatibleWith(MediaType.APPLICATION_XML)) || looksXml) {
+                    // 2) 정상 데이터(JSON) 파싱
+                    try {
                         return Mono.just(objectMapper.readValue(body, bodyType));
-                    } else {
-                        return Mono.just(xmlMapper.readValue(body, bodyType));
+                    } catch (Exception e) {
+                        log.error("[{}] Failed to parse TourAPI JSON response: {}", CLIENT_KEY, mask(body), e);
+                        return Mono.error(new RuntimeException("Failed to parse TourAPI JSON response", e));
                     }
-                } catch (Exception second) {
-                    log.error("[{}] Failed to parse TourAPI response: {}", CLIENT_KEY, mask(body), second);
-                    return Mono.error(new RuntimeException("Failed to parse TourAPI response", second));
-                }
-            }
-        });
-    }
-
-    public static void qpIfPresent(UriBuilder b, String name, Object v) {
-        if (v == null) return;
-        if (v instanceof String s && s.isBlank()) return;
-        b.queryParam(name, v);
+                });
     }
 
     private static String mask(String s) {

@@ -56,5 +56,7 @@ public class KorService2Response {
         private String dist;
         private String areacode;
         private String sigungucode;
+        private Integer pageNo;
+        private Integer numOfRows;
     }
 }
