@@ -2,6 +2,9 @@ package com.comma.soomteum.domain.auth.annotation;
 
 import com.comma.soomteum.domain.auth.JwtTokenManager;
 import com.comma.soomteum.domain.user.entity.User;
+import com.comma.soomteum.domain.user.repository.UserRepository;
+import com.comma.soomteum.global.response.CustomException;
+import com.comma.soomteum.global.response.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;
@@ -16,6 +19,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver {
 
     private final JwtTokenManager jwtTokenManager;
+    private final UserRepository userRepository;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -32,9 +36,12 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
 
         String token = jwtTokenManager.resolveToken(request);
         if (token == null || !jwtTokenManager.validateToken(token)) {
-            throw new RuntimeException("유효하지 않은 토큰입니다.");
+            // 토큰이 없거나 유효하지 않을 경우, null을 반환하여 비로그인 상태로 처리
+            return null;
         }
 
-        return jwtTokenManager.getUserIdFromToken(token);
+        Long userId = jwtTokenManager.getUserIdFromToken(token);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 }
