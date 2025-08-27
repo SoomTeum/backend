@@ -2,14 +2,18 @@ package com.comma.soomteum.domain.region.entity;
 
 import com.comma.soomteum.domain.BaseEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Table(name = "region")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
 public class Region extends BaseEntity {
 
     @Id
@@ -20,15 +24,15 @@ public class Region extends BaseEntity {
     private String name;
 
     @Column(name = "kor_area_code", nullable = false)
-    private int korAreaCode;   // 국문 관광 서비스 지역코드
+    private String korAreaCode;   // 국문 관광 서비스 지역코드
 
     @Column(name = "kor_sigungu_code", nullable = false)
-    private int korSigunguCode;   // 국문 관광 서비스 시군구 코드
+    private String korSigunguCode;   // 국문 관광 서비스 시군구 코드
 
     @Column(name = "cnctr_area_code", nullable = false)
-    private int cnctrAreaCode;   // 집중률 지역 코드
+    private String cnctrAreaCode;   // 집중률 지역 코드
 
-    @Column(name = "cnctr_sigungu_code", nullable = false)
-    private int cnctrSigunguCode;   // 집중률 시군구 코드
-
+    @OneToMany(mappedBy = "region", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OrderBy("priority ASC, cnctrSigunguCode ASC")
+    private List<RegionCnctr> cnctrSigungus;
 }
