@@ -2,6 +2,8 @@ package com.comma.soomteum.domain.userPlace.service;
 
 import com.comma.soomteum.domain.place.service.PlaceService;
 import com.comma.soomteum.domain.user.repository.UserRepository;
+import com.comma.soomteum.domain.userPlace.dto.UserPlaceItemDto;
+import com.comma.soomteum.domain.userPlace.dto.UserPlacePageResponseDto;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
 import com.comma.soomteum.domain.userPlace.entity.UserPlace;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
@@ -11,6 +13,8 @@ import com.comma.soomteum.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +72,34 @@ public class UserPlaceService {
         }
         return userPlaceRepository.countByPlace_PlaceIdAndType(placeId, type);
     }
+
+    @Transactional(readOnly = true)
+    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, Pageable pageable) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        var page = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
+
+        var items = page.getContent().stream().map(up -> {
+            var p = up.getPlace();
+            return UserPlaceItemDto.builder()
+                    .placeId(p.getPlaceId())
+                    // .title(p.getName())
+                    // .imageUrl(p.getThumbnailUrl())
+                    // .address(p.getAddress())
+                    .savedAt(up.getCreatedAt())
+                    .build();
+        }).toList();
+
+        return UserPlacePageResponseDto.of(
+                items,
+                page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages(),
+                page.isFirst(), page.isLast(),
+                page.hasNext(), page.hasPrevious()
+        );
+    }
+
 
     @Transactional public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
         return setAction(userId, placeId, UserActionType.LIKE, true);

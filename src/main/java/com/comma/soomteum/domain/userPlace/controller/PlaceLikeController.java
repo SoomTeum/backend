@@ -3,6 +3,7 @@ package com.comma.soomteum.domain.userPlace.controller;
 import com.comma.soomteum.domain.auth.annotation.LoginUser;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
+import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
 import com.comma.soomteum.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,7 +58,7 @@ public class PlaceLikeController {
     @GetMapping("/{placeId}/likes/count")
     public ResponseEntity<ApiResponse<Long>> getPlaceLikeCount(
             @PathVariable Long placeId) {
-        long likeCount = userPlaceService.getPlaceLikeCount(placeId);
+        long likeCount = userPlaceService.getActionCount(placeId, UserActionType.LIKE);
         return ResponseEntity.ok(ApiResponse.ok(likeCount));
     }
 }

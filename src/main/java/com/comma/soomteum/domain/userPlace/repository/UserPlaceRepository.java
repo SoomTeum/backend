@@ -4,6 +4,7 @@ import com.comma.soomteum.domain.userPlace.entity.UserPlace;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -19,5 +20,6 @@ public interface UserPlaceRepository extends JpaRepository<UserPlace, Long> {
 
     long countByPlace_PlaceIdAndType(Long placeId, UserActionType type);
 
+    @EntityGraph(attributePaths = "place")
     Page<UserPlace> findByUser_UserIdAndType(Long userId, UserActionType type, Pageable pageable);
 }
