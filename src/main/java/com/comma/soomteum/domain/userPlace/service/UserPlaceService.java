@@ -1,8 +1,6 @@
 package com.comma.soomteum.domain.userPlace.service;
 
-import com.comma.soomteum.domain.place.entity.Place;
 import com.comma.soomteum.domain.place.service.PlaceService;
-import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.user.repository.UserRepository;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
 import com.comma.soomteum.domain.userPlace.entity.UserPlace;
@@ -24,12 +22,11 @@ public class UserPlaceService {
 
     @Transactional
     public UserPlaceResponseDto setAction(Long userId, Long placeId, UserActionType type, boolean enable) {
-        User user = userRepository.findById(userId)
+        var user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        Place place = placeService.findPlaceById(placeId);
+        var place = placeService.findPlaceById(placeId);
 
-        var existing = userPlaceRepository
-                .findByUser_UserIdAndPlace_PlaceIdAndType(userId, placeId, type);
+        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, placeId, type);
 
         boolean changed = false;
 
@@ -54,34 +51,34 @@ public class UserPlaceService {
             }
         }
 
-        Long likeCount = (type == UserActionType.LIKE) ? place.getLikeCount() : null;
-
         return UserPlaceResponseDto.builder()
                 .placeId(placeId)
                 .type(type)
-                .enabled(enable)
-                .changed(changed)
-                .likeCount(likeCount)
+                .enabled(enable)   // 현재 상태
+                .changed(changed)  // 실제 변경 여부
                 .message(type + " " + (enable ? "ON" : "OFF"))
                 .build();
     }
 
+    // 좋아요용 카운트
     @Transactional(readOnly = true)
     public long getActionCount(Long placeId, UserActionType type) {
         if (type == UserActionType.LIKE) {
-            Place place = placeService.findPlaceById(placeId);
-            return place.getLikeCount();
+            return placeService.findPlaceById(placeId).getLikeCount();
         }
         return userPlaceRepository.countByPlace_PlaceIdAndType(placeId, type);
     }
 
-    @Transactional
-    public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
+    @Transactional public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
         return setAction(userId, placeId, UserActionType.LIKE, true);
     }
-
-    @Transactional
-    public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
+    @Transactional public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
         return setAction(userId, placeId, UserActionType.LIKE, false);
+    }
+    @Transactional public UserPlaceResponseDto savePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.SAVE, true);
+    }
+    @Transactional public UserPlaceResponseDto unsavePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.SAVE, false);
     }
 }
