@@ -1,9 +1,9 @@
 package com.comma.soomteum.domain.userPlace.service;
 
-import com.comma.soomteum.domain.place.entity.Place;
 import com.comma.soomteum.domain.place.service.PlaceService;
-import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.user.repository.UserRepository;
+import com.comma.soomteum.domain.userPlace.dto.UserPlaceItemDto;
+import com.comma.soomteum.domain.userPlace.dto.UserPlacePageResponseDto;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
 import com.comma.soomteum.domain.userPlace.entity.UserPlace;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Pageable;
+
 @Service
 @RequiredArgsConstructor
 public class UserPlaceService {
@@ -23,49 +25,92 @@ public class UserPlaceService {
     private final PlaceService placeService;
 
     @Transactional
-    public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
-        User user = userRepository.findById(userId)
+    public UserPlaceResponseDto setAction(Long userId, Long placeId, UserActionType type, boolean enable) {
+        var user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        Place place = placeService.findPlaceById(placeId);
+        var place = placeService.findPlaceById(placeId);
 
-        userPlaceRepository.findByUser_UserIdAndPlace_PlaceId(userId, placeId).ifPresent(userPlace -> {
-            throw new CustomException(ErrorCode.ALREADY_LIKED_PLACE);
-        });
+        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, placeId, type);
 
-        UserPlace userPlace = UserPlace.builder()
-                .user(user)
-                .place(place)
-                .type(UserActionType.LIKE)
-                .build();
+        boolean changed = false;
 
-        userPlaceRepository.save(userPlace);
-        place.increaseLikeCount();
+        if (enable) {
+            if (existing.isEmpty()) {
+                try {
+                    userPlaceRepository.save(UserPlace.builder()
+                            .user(user)
+                            .place(place)
+                            .type(type)
+                            .build());
+                    if (type == UserActionType.LIKE) place.increaseLikeCount();
+                    changed = true;
+                } catch (org.springframework.dao.DataIntegrityViolationException ignore) {
+                }
+            }
+        } else {
+            if (existing.isPresent()) {
+                userPlaceRepository.delete(existing.get());
+                if (type == UserActionType.LIKE) place.decreaseLikeCount();
+                changed = true;
+            }
+        }
 
         return UserPlaceResponseDto.builder()
-                .message("userId: " + userId + " PlaceId: " + placeId + " 좋아요가 성공했습니다.")
+                .placeId(placeId)
+                .type(type)
+                .enabled(enable)   // 현재 상태
+                .changed(changed)  // 실제 변경 여부
+                .message(type + " " + (enable ? "ON" : "OFF"))
                 .build();
     }
 
-    @Transactional
-    public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        Place place = placeService.findPlaceById(placeId);
-
-        UserPlace userPlace = userPlaceRepository.findByUser_UserIdAndPlace_PlaceId(userId, placeId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_LIKED_PLACE));
-
-        userPlaceRepository.delete(userPlace);
-        place.decreaseLikeCount();
-
-        return UserPlaceResponseDto.builder()
-                .message("userId: " + userId + " PlaceId: " + placeId + " 좋아요 해제가 성공했습니다.")
-                .build();
+    // 좋아요용 카운트
+    @Transactional(readOnly = true)
+    public long getActionCount(Long placeId, UserActionType type) {
+        if (type == UserActionType.LIKE) {
+            return placeService.findPlaceById(placeId).getLikeCount();
+        }
+        return userPlaceRepository.countByPlace_PlaceIdAndType(placeId, type);
     }
 
     @Transactional(readOnly = true)
-    public long getPlaceLikeCount(Long placeId) {
-        Place place = placeService.findPlaceById(placeId);
-        return place.getLikeCount();
+    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, Pageable pageable) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        var page = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
+
+        var items = page.getContent().stream().map(up -> {
+            var p = up.getPlace();
+            return UserPlaceItemDto.builder()
+                    .placeId(p.getPlaceId())
+                    // .title(p.getName())
+                    // .imageUrl(p.getThumbnailUrl())
+                    // .address(p.getAddress())
+                    .savedAt(up.getCreatedAt())
+                    .build();
+        }).toList();
+
+        return UserPlacePageResponseDto.of(
+                items,
+                page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages(),
+                page.isFirst(), page.isLast(),
+                page.hasNext(), page.hasPrevious()
+        );
+    }
+
+
+    @Transactional public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.LIKE, true);
+    }
+    @Transactional public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.LIKE, false);
+    }
+    @Transactional public UserPlaceResponseDto savePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.SAVE, true);
+    }
+    @Transactional public UserPlaceResponseDto unsavePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.SAVE, false);
     }
 }

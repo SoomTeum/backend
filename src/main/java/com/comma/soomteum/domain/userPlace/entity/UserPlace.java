@@ -17,9 +17,13 @@ import lombok.NoArgsConstructor;
         name = "user_place",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "user_place_unique",
-                        columnNames = {"user_id", "place_id"}
+                        name = "uq_user_place_user_place_type",
+                        columnNames = {"user_id", "place_id", "type"}
                 )
+        },
+        indexes = {
+                @Index(name = "idx_user_place_place_type", columnList = "place_id,type"), // like 카운트/랭킹에 유용
+                @Index(name = "idx_user_place_user_type",  columnList = "user_id,type")   // 내 저장/좋아요 목록 조회
         }
 )
 public class UserPlace extends BaseEntity {
@@ -37,8 +41,8 @@ public class UserPlace extends BaseEntity {
     @JoinColumn(name = "place_id", nullable = false)
     private Place place;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
     private UserActionType type;
 
     @Builder
