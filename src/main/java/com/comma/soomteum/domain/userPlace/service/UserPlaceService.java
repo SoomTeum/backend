@@ -23,49 +23,65 @@ public class UserPlaceService {
     private final PlaceService placeService;
 
     @Transactional
-    public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
+    public UserPlaceResponseDto setAction(Long userId, Long placeId, UserActionType type, boolean enable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         Place place = placeService.findPlaceById(placeId);
 
-        userPlaceRepository.findByUser_UserIdAndPlace_PlaceId(userId, placeId).ifPresent(userPlace -> {
-            throw new CustomException(ErrorCode.ALREADY_LIKED_PLACE);
-        });
+        var existing = userPlaceRepository
+                .findByUser_UserIdAndPlace_PlaceIdAndType(userId, placeId, type);
 
-        UserPlace userPlace = UserPlace.builder()
-                .user(user)
-                .place(place)
-                .type(UserActionType.LIKE)
-                .build();
+        boolean changed = false;
 
-        userPlaceRepository.save(userPlace);
-        place.increaseLikeCount();
+        if (enable) {
+            if (existing.isEmpty()) {
+                try {
+                    userPlaceRepository.save(UserPlace.builder()
+                            .user(user)
+                            .place(place)
+                            .type(type)
+                            .build());
+                    if (type == UserActionType.LIKE) place.increaseLikeCount();
+                    changed = true;
+                } catch (org.springframework.dao.DataIntegrityViolationException ignore) {
+                }
+            }
+        } else {
+            if (existing.isPresent()) {
+                userPlaceRepository.delete(existing.get());
+                if (type == UserActionType.LIKE) place.decreaseLikeCount();
+                changed = true;
+            }
+        }
 
-        return UserPlaceResponseDto.builder()
-                .message("userId: " + userId + " PlaceId: " + placeId + " 좋아요가 성공했습니다.")
-                .build();
-    }
-
-    @Transactional
-    public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        Place place = placeService.findPlaceById(placeId);
-
-        UserPlace userPlace = userPlaceRepository.findByUser_UserIdAndPlace_PlaceId(userId, placeId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_LIKED_PLACE));
-
-        userPlaceRepository.delete(userPlace);
-        place.decreaseLikeCount();
+        Long likeCount = (type == UserActionType.LIKE) ? place.getLikeCount() : null;
 
         return UserPlaceResponseDto.builder()
-                .message("userId: " + userId + " PlaceId: " + placeId + " 좋아요 해제가 성공했습니다.")
+                .placeId(placeId)
+                .type(type)
+                .enabled(enable)
+                .changed(changed)
+                .likeCount(likeCount)
+                .message(type + " " + (enable ? "ON" : "OFF"))
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public long getPlaceLikeCount(Long placeId) {
-        Place place = placeService.findPlaceById(placeId);
-        return place.getLikeCount();
+    public long getActionCount(Long placeId, UserActionType type) {
+        if (type == UserActionType.LIKE) {
+            Place place = placeService.findPlaceById(placeId);
+            return place.getLikeCount();
+        }
+        return userPlaceRepository.countByPlace_PlaceIdAndType(placeId, type);
+    }
+
+    @Transactional
+    public UserPlaceResponseDto likePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.LIKE, true);
+    }
+
+    @Transactional
+    public UserPlaceResponseDto unlikePlace(Long userId, Long placeId) {
+        return setAction(userId, placeId, UserActionType.LIKE, false);
     }
 }
