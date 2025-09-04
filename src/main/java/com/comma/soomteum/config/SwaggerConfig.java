@@ -89,6 +89,26 @@ public class SwaggerConfig {
                 .build();
     }
 
+    // Places 그룹
+    @Bean
+    GroupedOpenApi placesGroup(@Qualifier("commonErrorResponses") OpenApiCustomizer commonErrorResponses) {
+        return GroupedOpenApi.builder()
+                .group("Places")
+                .pathsToMatch("/api/places/**")
+                .addOpenApiCustomizer(commonErrorResponses)
+                .build();
+    }
+
+    // Parking 그룹
+    @Bean
+    GroupedOpenApi parkingGroup(@Qualifier("commonErrorResponses") OpenApiCustomizer commonErrorResponses) {
+        return GroupedOpenApi.builder()
+                .group("Parking")
+                .pathsToMatch("/api/parking/**")
+                .addOpenApiCustomizer(commonErrorResponses)
+                .build();
+    }
+
      @Bean
      GroupedOpenApi allApis() {
          return GroupedOpenApi.builder()
