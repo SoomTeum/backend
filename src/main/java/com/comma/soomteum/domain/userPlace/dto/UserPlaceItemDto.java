@@ -3,6 +3,7 @@ package com.comma.soomteum.domain.userPlace.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -15,17 +16,17 @@ import java.time.LocalDateTime;
 @Schema(name = "UserPlaceItem", description = "내가 저장한 장소 아이템")
 public class UserPlaceItemDto {
 
-    @Schema(description = "장소 ID", example = "123")
-    private Long placeId;
+    @Schema(description = "Place 혼잡도 수준", example = "3.5")
+    private BigDecimal cnctrLevel;
 
-    @Schema(description = "장소 이름/타이틀", example = "경복궁")
-    private String title;
+    @Schema(description = "Place 콘텐츠 ID", example = "content123")
+    private String contentId;
 
-    @Schema(description = "대표 이미지 URL", example = "https://.../image.jpg")
-    private String imageUrl;
+    @Schema(description = "Place 좋아요 수", example = "42")
+    private Long likeCount;
 
-    @Schema(description = "주소 또는 지역명", example = "서울 종로구 사직로 161")
-    private String address;
+    @Schema(description = "테마 이름", example = "자연")
+    private String themeName;
 
     @Schema(description = "저장한 시각", example = "2025-08-19T11:54:00")
     private LocalDateTime savedAt;

@@ -13,6 +13,7 @@ import com.comma.soomteum.global.response.CustomException;
 import com.comma.soomteum.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -47,15 +48,12 @@ public class UserPlaceService {
                             .type(type)
                             .build());
                     if (type == UserActionType.LIKE) {
-                        System.out.println("Before increase: likeCount = " + place.getLikeCount());
                         place.increaseLikeCount();
-                        System.out.println("After increase: likeCount = " + place.getLikeCount());
                         placeRepository.save(place);
-                        placeRepository.flush(); // 강제로 DB에 반영
-                        System.out.println("Saved and flushed place with likeCount = " + place.getLikeCount());
                     }
                     changed = true;
-                } catch (org.springframework.dao.DataIntegrityViolationException ignore) {
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // 중복 키 제약조건 위반 시 이미 존재하는 것으로 간주
                 }
             }
         } else {
@@ -134,29 +132,30 @@ public class UserPlaceService {
     }
 
     @Transactional(readOnly = true)
-    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, Pageable pageable) {
+    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, int page, int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        var page = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        var pageResult = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
 
-        var items = page.getContent().stream().map(up -> {
-            var p = up.getPlace();
+        var items = pageResult.getContent().stream().map(up -> {
+            var place = up.getPlace();
             return UserPlaceItemDto.builder()
-                    .placeId(p.getPlaceId())
-                    // .title(p.getName())
-                    // .imageUrl(p.getThumbnailUrl())
-                    // .address(p.getAddress())
+                    .cnctrLevel(place.getCnctrLevel())
+                    .contentId(place.getContentId())
+                    .likeCount(place.getLikeCount())
+                    .themeName(place.getTheme() != null ? place.getTheme().getName() : null)
                     .savedAt(up.getCreatedAt())
                     .build();
         }).toList();
 
         return UserPlacePageResponseDto.of(
                 items,
-                page.getNumber(), page.getSize(),
-                page.getTotalElements(), page.getTotalPages(),
-                page.isFirst(), page.isLast(),
-                page.hasNext(), page.hasPrevious()
+                pageResult.getNumber(), pageResult.getSize(),
+                pageResult.getTotalElements(), pageResult.getTotalPages(),
+                pageResult.isFirst(), pageResult.isLast(),
+                pageResult.hasNext(), pageResult.hasPrevious()
         );
     }
 
@@ -188,13 +187,13 @@ public class UserPlaceService {
         if (place.getPlaceId() == null) {
             throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
         }
-        
-        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
 
         boolean changed = false;
 
         if (enable) {
-            if (existing.isEmpty()) {
+            // 이미 존재하는지 확인
+            boolean exists = userPlaceRepository.existsByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
+            if (!exists) {
                 try {
                     userPlaceRepository.save(UserPlace.builder()
                             .user(user)
@@ -202,18 +201,16 @@ public class UserPlaceService {
                             .type(type)
                             .build());
                     if (type == UserActionType.LIKE) {
-                        System.out.println("Before increase: likeCount = " + place.getLikeCount());
                         place.increaseLikeCount();
-                        System.out.println("After increase: likeCount = " + place.getLikeCount());
                         placeRepository.save(place);
-                        placeRepository.flush(); // 강제로 DB에 반영
-                        System.out.println("Saved and flushed place with likeCount = " + place.getLikeCount());
                     }
                     changed = true;
-                } catch (org.springframework.dao.DataIntegrityViolationException ignore) {
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // 동시성 문제로 중복 생성 시도 - 무시
                 }
             }
         } else {
+            var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
             if (existing.isPresent()) {
                 userPlaceRepository.delete(existing.get());
                 if (type == UserActionType.LIKE) {

@@ -17,8 +17,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,9 +93,10 @@ public class PlaceSaveController {
     @GetMapping
     public ResponseEntity<ApiResponse<UserPlacePageResponseDto>> mySaved(
             @Parameter(hidden = true) @LoginUser User user,
-            @Parameter(description = "페이지/사이즈 등 페이징 파라미터") @PageableDefault(size = 20) Pageable pageable) {
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(value = "page", defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(value = "size", defaultValue = "20") int size) {
 
-        var page = userPlaceService.getMyPlaces(user.getUserId(), UserActionType.SAVE, pageable);
-        return ResponseEntity.ok(ApiResponse.ok(page));
+        var result = userPlaceService.getMyPlaces(user.getUserId(), UserActionType.SAVE, page, size);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }
