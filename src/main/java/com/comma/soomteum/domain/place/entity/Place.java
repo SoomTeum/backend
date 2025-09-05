@@ -23,11 +23,13 @@ public class Place extends BaseEntity {
     @Column(length = 255, nullable = false)
     private String contentId;
 
-    @Column(length = 100, nullable = true)
-    private BigDecimal cnctrLevel;
+    @Column(length = 100, nullable = false)
+    @Builder.Default
+    private BigDecimal cnctrLevel = BigDecimal.ZERO;
 
     @Column(nullable = false)
-    private Long likeCount;
+    @Builder.Default
+    private Long likeCount = 0L;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)
@@ -38,10 +40,18 @@ public class Place extends BaseEntity {
     private Theme theme;
 
     public void increaseLikeCount() {
+        if (this.likeCount == null) this.likeCount = 0L;
         this.likeCount++;
     }
 
     public void decreaseLikeCount() {
-        this.likeCount--;
+        if (this.likeCount == null) this.likeCount = 0L;
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
+
+    public Long getLikeCount() {
+        return this.likeCount == null ? 0L : this.likeCount;
     }
 }
