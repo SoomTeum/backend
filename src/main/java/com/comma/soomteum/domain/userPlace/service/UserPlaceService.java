@@ -117,6 +117,35 @@ public class UserPlaceService {
                 .build();
     }
 
+    @Transactional
+    public UserPlaceResponseDto removeSaveByContentId(Long userId, String contentId) {
+        // contentId로 Place 찾기
+        var placeOpt = placeService.findByContentId(contentId);
+        if (placeOpt.isEmpty()) {
+            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+        }
+        
+        var place = placeOpt.get();
+        
+        // 해당 사용자의 저장 찾기
+        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(
+                userId, place.getPlaceId(), UserActionType.SAVE);
+        
+        boolean changed = false;
+        if (existing.isPresent()) {
+            userPlaceRepository.delete(existing.get());
+            changed = true;
+        }
+        
+        return UserPlaceResponseDto.builder()
+                .placeId(place.getPlaceId())
+                .type(UserActionType.SAVE)
+                .enabled(false)
+                .changed(changed)
+                .message("저장 " + (changed ? "해제됨" : "이미 해제됨"))
+                .build();
+    }
+
     @Transactional(readOnly = true)
     public long getActionCountByContentId(String contentId, UserActionType type) {
         var placeOpt = placeService.findByContentId(contentId);
