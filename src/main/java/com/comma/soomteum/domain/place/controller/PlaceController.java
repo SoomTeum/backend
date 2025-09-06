@@ -1,5 +1,6 @@
 package com.comma.soomteum.domain.place.controller;
 
+import com.comma.soomteum.domain.ai.adapter.AiServiceAdapter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;

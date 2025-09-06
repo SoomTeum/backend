@@ -5,45 +5,45 @@ import com.comma.soomteum.domain.ai.dto.AiRecommendationResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 public class AiRecommendationService {
 
-    // 내부 계산용 임시 데이터 클래스
-    private record ScoredItem(AiRecommendationRequest.Item originalItem, double totalScore) {}
+    private record ScoredItem(AiRecommendationRequest originalItem, double totalScore) {}
 
     // 샤프니스 튜닝 기본값 기준
     private static final double EPS = 1e-9;
     // --- 튜닝 가능한 상수들 ---
-    private static final double DEFAULT_SHARPNESS = 0.1; // IQR이 0일 때 사용할 기본 샤프니스
-    private static final double FIXED_PENALTY_SCORE = 20.0; // 고정 패널티 값
-    private static final double SHRINKAGE_LAMBDA = 0.7; // 수축 가중치 (고정값에 70% 비중)
-    private static final double MAX_SHARPNESS = 10.0;        // 샤프니스 상한선
+    private static final double DEFAULT_SHARPNESS = 0.1;
+    private static final double FIXED_PENALTY_SCORE = 20.0;
+    private static final double SHRINKAGE_LAMBDA = 0.7;
+    private static final double MAX_SHARPNESS = 10.0;
     private static final double MIN_SHARPNESS = 0.01;
 
 
-    public AiRecommendationResponse createRankedRecommendations(AiRecommendationRequest request) {
-        List<AiRecommendationRequest.Item> items = request.items();
+    public List<AiRecommendationResponse> createRankedRecommendations(List<AiRecommendationRequest> items) {
         if (items == null || items.isEmpty()) {
-            return new AiRecommendationResponse(List.of());
+            return Collections.emptyList();
         }
 
         // --- 데이터 준비 및 동적 샤프니스 계산 ---
-        double[] sortedTimes = items.stream().mapToDouble(AiRecommendationRequest.Item::travelTimeInMinutes).sorted().toArray();
-        double[] validRates = items.stream().mapToDouble(AiRecommendationRequest.Item::congestionRate).filter(r -> r >= 0).sorted().toArray();
+        double[] sortedDists = items.stream().mapToDouble(item -> parseDouble(item.getDist())).sorted().toArray();
+        double[] validRates = items.stream()
+                .mapToDouble(item -> parseDouble(item.getCnctrRate()))
+                .filter(r -> r >= 0)
+                .sorted().toArray();
 
-        double timeIqr = findIqr(sortedTimes);
+        double distIqr = findIqr(sortedDists); // <<< 가독성을 위해 변수명 변경 (timeIqr -> distIqr)
         double rateIqr = findIqr(validRates);
 
-        // IQR을 기반으로 샤프니스 자동 튜닝 (IQR이 0이면 기본값 사용)
-        double timeSharpness = (timeIqr <= EPS) ? DEFAULT_SHARPNESS : Math.min(Math.log(9) / timeIqr, MAX_SHARPNESS);
+        double distSharpness = (distIqr <= EPS) ? DEFAULT_SHARPNESS : Math.min(Math.log(9) / distIqr, MAX_SHARPNESS);
         double congestionSharpness = (rateIqr <= EPS) ? DEFAULT_SHARPNESS : Math.min(Math.log(9) / rateIqr, MAX_SHARPNESS);
 
-        double medianTime = findMedian(sortedTimes);
+        double medianDist = findMedian(sortedDists); // <<< 가독성을 위해 변수명 변경 (medianTime -> medianDist)
         double medianRate = (validRates.length > 0) ? findMedian(validRates) : 0.0;
 
 
@@ -54,23 +54,26 @@ public class AiRecommendationService {
                 validCongestionScores.add(sigmoid((medianRate - rate) * congestionSharpness) * 100.0);
             }
         }
-        validCongestionScores.sort(Double::compare); // 분위수 계산 전 반드시 정렬!
-        double dynamicPenalty = validCongestionScores.isEmpty() ? FIXED_PENALTY_SCORE : findQuantile(validCongestionScores, 0.2); // p20 (하위 20%)
+        validCongestionScores.sort(Double::compare);
+        double dynamicPenalty = validCongestionScores.isEmpty() ? FIXED_PENALTY_SCORE : findQuantile(validCongestionScores, 0.2);
         double finalPenaltyScore = (SHRINKAGE_LAMBDA * FIXED_PENALTY_SCORE) + ((1 - SHRINKAGE_LAMBDA) * dynamicPenalty);
 
 
         // --- 최종 점수 계산 ---
         List<ScoredItem> scoredItems = new ArrayList<>();
-        for (AiRecommendationRequest.Item item : items) {
-            double timeScore = sigmoid((medianTime - item.travelTimeInMinutes()) * timeSharpness) * 100.0;
+        for (AiRecommendationRequest item : items) {
+            double distValue = parseDouble(item.getDist());
+            double rateValue = parseDouble(item.getCnctrRate());
+
+            double distScore = sigmoid((medianDist - distValue) * distSharpness) * 100.0;
             double congestionScore;
-            if (item.congestionRate() < 0) {
+            if (rateValue < 0) {
                 congestionScore = finalPenaltyScore;
             } else {
-                congestionScore = sigmoid((medianRate - item.congestionRate()) * congestionSharpness) * 100.0;
+                congestionScore = sigmoid((medianRate - rateValue) * congestionSharpness) * 100.0;
             }
 
-            double totalScore = (timeScore * 0.55) + (congestionScore * 0.45);
+            double totalScore = (distScore * 0.55) + (congestionScore * 0.45);
             scoredItems.add(new ScoredItem(item, totalScore));
         }
 
@@ -78,29 +81,39 @@ public class AiRecommendationService {
         // --- 정렬 및 최종 응답 생성 ---
         scoredItems.sort(
                 Comparator.comparingDouble(ScoredItem::totalScore).reversed()
-                        .thenComparing(si -> si.originalItem().travelTimeInMinutes()) // 1차 동점: 시간 짧은 순
-                        .thenComparing(si -> si.originalItem().name())              // 2차 동점: 이름 가나다 순
+                        .thenComparing(si -> parseDouble(si.originalItem().getDist()))
+                        .thenComparing(si -> si.originalItem().getTitle())
         );
 
-        List<AiRecommendationResponse.RankedItem> rankedItems = IntStream.range(0, scoredItems.size())
-                .mapToObj(i -> {
-                    ScoredItem scoredItem = scoredItems.get(i);
-                    AiRecommendationRequest.Item original = scoredItem.originalItem();
-                    return new AiRecommendationResponse.RankedItem(
-                            original.placeId(),
-                            original.name(),
-                            original.theme(),
-                            original.region(),
-                            i + 1 // 랭킹 부여
+        List<AiRecommendationResponse> rankedItems = scoredItems.stream()
+                .map(scoredItem -> {
+                    AiRecommendationRequest original = scoredItem.originalItem();
+                    return new AiRecommendationResponse(
+                            original.getTitle(),
+                            original.getContentid(),
+                            original.getCat1(),
+                            original.getCat2(),
+                            original.getFirstimage(),
+                            original.getDist(),
+                            original.getCnctrRate()
                     );
                 })
                 .collect(Collectors.toList());
 
-        return new AiRecommendationResponse(rankedItems);
+        return rankedItems;
     }
 
 
     // --- 헬퍼 메소드들 ---
+    private double parseDouble(String value) {
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException | NullPointerException e) {
+            // 파싱 실패 시 -1.0 (결측치)과 동일하게 처리
+            return -1.0;
+        }
+    }
+
     private double sigmoid(double x) {
         return 1 / (1 + Math.exp(-x));
     }
