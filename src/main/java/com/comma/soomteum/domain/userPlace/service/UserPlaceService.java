@@ -1,5 +1,6 @@
 package com.comma.soomteum.domain.userPlace.service;
 
+import com.comma.soomteum.domain.place.repository.PlaceRepository;
 import com.comma.soomteum.domain.place.service.PlaceService;
 import com.comma.soomteum.domain.user.repository.UserRepository;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceItemDto;
@@ -12,7 +13,10 @@ import com.comma.soomteum.global.response.CustomException;
 import com.comma.soomteum.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 import org.springframework.data.domain.Pageable;
 
@@ -22,6 +26,7 @@ public class UserPlaceService {
 
     private final UserPlaceRepository userPlaceRepository;
     private final UserRepository userRepository;
+    private final PlaceRepository placeRepository;
     private final PlaceService placeService;
 
     @Transactional
@@ -42,15 +47,22 @@ public class UserPlaceService {
                             .place(place)
                             .type(type)
                             .build());
-                    if (type == UserActionType.LIKE) place.increaseLikeCount();
+                    if (type == UserActionType.LIKE) {
+                        place.increaseLikeCount();
+                        placeRepository.save(place);
+                    }
                     changed = true;
-                } catch (org.springframework.dao.DataIntegrityViolationException ignore) {
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // 중복 키 제약조건 위반 시 이미 존재하는 것으로 간주
                 }
             }
         } else {
             if (existing.isPresent()) {
                 userPlaceRepository.delete(existing.get());
-                if (type == UserActionType.LIKE) place.decreaseLikeCount();
+                if (type == UserActionType.LIKE) {
+                    place.decreaseLikeCount();
+                    placeRepository.save(place);
+                }
                 changed = true;
             }
         }
@@ -73,30 +85,106 @@ public class UserPlaceService {
         return userPlaceRepository.countByPlace_PlaceIdAndType(placeId, type);
     }
 
+    @Transactional
+    public UserPlaceResponseDto removeLikeByContentId(Long userId, String contentId) {
+        // contentId로 Place 찾기
+        var placeOpt = placeService.findByContentId(contentId);
+        if (placeOpt.isEmpty()) {
+            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+        }
+        
+        var place = placeOpt.get();
+        
+        // 해당 사용자의 좋아요 찾기
+        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(
+                userId, place.getPlaceId(), UserActionType.LIKE);
+        
+        boolean changed = false;
+        if (existing.isPresent()) {
+            userPlaceRepository.delete(existing.get());
+            place.decreaseLikeCount();
+            placeRepository.save(place);
+            placeRepository.flush();
+            changed = true;
+        }
+        
+        return UserPlaceResponseDto.builder()
+                .placeId(place.getPlaceId())
+                .type(UserActionType.LIKE)
+                .enabled(false)
+                .changed(changed)
+                .message("좋아요 " + (changed ? "해제됨" : "이미 해제됨"))
+                .build();
+    }
+
+    @Transactional
+    public UserPlaceResponseDto removeSaveByContentId(Long userId, String contentId) {
+        // contentId로 Place 찾기
+        var placeOpt = placeService.findByContentId(contentId);
+        if (placeOpt.isEmpty()) {
+            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+        }
+        
+        var place = placeOpt.get();
+        
+        // 해당 사용자의 저장 찾기
+        var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(
+                userId, place.getPlaceId(), UserActionType.SAVE);
+        
+        boolean changed = false;
+        if (existing.isPresent()) {
+            userPlaceRepository.delete(existing.get());
+            changed = true;
+        }
+        
+        return UserPlaceResponseDto.builder()
+                .placeId(place.getPlaceId())
+                .type(UserActionType.SAVE)
+                .enabled(false)
+                .changed(changed)
+                .message("저장 " + (changed ? "해제됨" : "이미 해제됨"))
+                .build();
+    }
+
     @Transactional(readOnly = true)
-    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, Pageable pageable) {
+    public long getActionCountByContentId(String contentId, UserActionType type) {
+        var placeOpt = placeService.findByContentId(contentId);
+        if (placeOpt.isEmpty()) {
+            return 0L;
+        }
+        
+        var place = placeOpt.get();
+        if (type == UserActionType.LIKE) {
+            return place.getLikeCount();
+        }
+        return userPlaceRepository.countByPlace_PlaceIdAndType(place.getPlaceId(), type);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, int page, int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        var page = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        var pageResult = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
 
-        var items = page.getContent().stream().map(up -> {
-            var p = up.getPlace();
+        var items = pageResult.getContent().stream().map(up -> {
+            var place = up.getPlace();
             return UserPlaceItemDto.builder()
-                    .placeId(p.getPlaceId())
-                    // .title(p.getName())
-                    // .imageUrl(p.getThumbnailUrl())
-                    // .address(p.getAddress())
+                    .cnctrLevel(place.getCnctrLevel())
+                    .contentId(place.getContentId())
+                    .likeCount(place.getLikeCount())
+                    .themeName(place.getTheme() != null ? place.getTheme().getName() : null)
                     .savedAt(up.getCreatedAt())
                     .build();
         }).toList();
 
         return UserPlacePageResponseDto.of(
                 items,
-                page.getNumber(), page.getSize(),
-                page.getTotalElements(), page.getTotalPages(),
-                page.isFirst(), page.isLast(),
-                page.hasNext(), page.hasPrevious()
+                pageResult.getNumber(), pageResult.getSize(),
+                pageResult.getTotalElements(), pageResult.getTotalPages(),
+                pageResult.isFirst(), pageResult.isLast(),
+                pageResult.hasNext(), pageResult.hasPrevious()
         );
     }
 
@@ -112,5 +200,62 @@ public class UserPlaceService {
     }
     @Transactional public UserPlaceResponseDto unsavePlace(Long userId, Long placeId) {
         return setAction(userId, placeId, UserActionType.SAVE, false);
+    }
+
+    @Transactional
+    public UserPlaceResponseDto setActionByContentId(Long userId, String contentId, Long regionId, Long themeId, BigDecimal cnctrLevel, UserActionType type, boolean enable) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
+        
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        
+        var place = placeService.findOrCreatePlace(contentId, regionId, themeId, cnctrLevel);
+        
+        if (place.getPlaceId() == null) {
+            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
+        }
+
+        boolean changed = false;
+
+        if (enable) {
+            // 이미 존재하는지 확인
+            boolean exists = userPlaceRepository.existsByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
+            if (!exists) {
+                try {
+                    userPlaceRepository.save(UserPlace.builder()
+                            .user(user)
+                            .place(place)
+                            .type(type)
+                            .build());
+                    if (type == UserActionType.LIKE) {
+                        place.increaseLikeCount();
+                        placeRepository.save(place);
+                    }
+                    changed = true;
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // 동시성 문제로 중복 생성 시도 - 무시
+                }
+            }
+        } else {
+            var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
+            if (existing.isPresent()) {
+                userPlaceRepository.delete(existing.get());
+                if (type == UserActionType.LIKE) {
+                    place.decreaseLikeCount();
+                    placeRepository.save(place);
+                }
+                changed = true;
+            }
+        }
+
+        return UserPlaceResponseDto.builder()
+                .placeId(place.getPlaceId())
+                .type(type)
+                .enabled(enable)
+                .changed(changed)
+                .message(type + " " + (enable ? "ON" : "OFF"))
+                .build();
     }
 }
