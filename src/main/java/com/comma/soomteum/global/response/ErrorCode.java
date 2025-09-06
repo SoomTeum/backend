@@ -55,6 +55,7 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(404_006, HttpStatus.NOT_FOUND, "해당 상품을 찾을 수 없습니다."),
     PLACE_NOT_FOUND(404_007, HttpStatus.NOT_FOUND, "해당 장소를 찾을 수 없습니다."),
     REGION_NOT_FOUND(404_008, HttpStatus.NOT_FOUND, "해당 지역을 찾을 수 없습니다."),
+    THEME_NOT_FOUND(404_009, HttpStatus.NOT_FOUND, "해당 테마를 찾을 수 없습니다."),
 
     // ========================
     // 409 Conflict
