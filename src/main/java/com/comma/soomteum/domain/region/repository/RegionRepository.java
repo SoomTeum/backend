@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface RegionRepository extends JpaRepository<Region, Long> {
     @EntityGraph(attributePaths = "cnctrSigungus")
     Optional<Region> findByKorAreaCodeAndKorSigunguCode(String korAreaCode, String korSigunguCode);
+    
+    Optional<Region> findByName(String name);
 }
