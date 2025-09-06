@@ -42,7 +42,7 @@ public class TatsCnctrApiCaller {
     private final BiConsumer<UriBuilder, TourApiProperties> commonQueryApplier;
     private final Function<String, String> tourApiKeyResolver;
 
-    private final ObjectMapper objectMapper; // JSON 전용으로 사용
+    private final ObjectMapper objectMapper = new ObjectMapper(); // 별도 ObjectMapper 사용
 
     @PostConstruct
     void setupMappers() {
