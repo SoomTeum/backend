@@ -40,7 +40,7 @@ public class AiReviewService {
 
     private String buildPrompt(String placeName) {
         return String.format(
-                "너는 전 세계 모든 여행지의 리뷰를 알고 있는 여행 전문가야. '%s'의 최신 리뷰들을 아는 것처럼 자연스러운 한 문단으로 요약해줘. 긍정적인 점과 아쉬운 점을 모두 포함해줘. 다른 설명 없이 요약된 문장만 말해줘.",
+                "너는 전 세계 모든 여행지의 리뷰를 알고 있는 여행 전문가야. '%s'의 최신 리뷰들을 자연스러운 한 문단으로 요약해줘. 긍정적인 점과 아쉬운 점을 모두 포함해줘. 다른 설명 없이 요약된 문장만 말해줘.",
                 placeName
         );
     }
