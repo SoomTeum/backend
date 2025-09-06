@@ -12,11 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserProfileResponseDto {
 
+    private Long userId;
     private String email;
     private String nickname;
 
     public static UserProfileResponseDto fromEntity(User user) {
         return UserProfileResponseDto.builder()
+                .userId(user.getUserId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .build();

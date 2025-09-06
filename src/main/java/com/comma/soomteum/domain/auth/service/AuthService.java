@@ -6,6 +6,7 @@ import com.comma.soomteum.domain.auth.dto.AuthTokenRequestDto;
 import com.comma.soomteum.domain.token.dto.TokenDto;
 import com.comma.soomteum.domain.token.entity.Token;
 import com.comma.soomteum.domain.token.repository.TokenRepository;
+import com.comma.soomteum.domain.user.dto.UserProfileResponseDto;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.user.repository.UserRepository;
 import com.comma.soomteum.global.response.CustomException;
@@ -78,6 +79,7 @@ public class AuthService {
                 .accessToken(tokenDto.getAccessToken())
                 .refreshToken(tokenDto.getRefreshToken())
                 .isNewUser(isNewUser)
+                .user(UserProfileResponseDto.fromEntity(user))
                 .build();
     }
 
