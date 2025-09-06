@@ -6,10 +6,6 @@ import java.util.List;
 
 @Service
 public class CrawlingService {
-    /**
-     * API테스트용 더미 데이터
-     * 실제 크롤링 대신, 테스트용 리뷰 데이터를 반환.
-     */
     public List<String> fetchReviewsByPlaceName(String placeName) {
         System.out.println("!!!!!!!!!! [개발 모드] !!!!!!!!!!!");
         System.out.println("'" + placeName + "'에 대한 실제 크롤링을 생략하고 더미 데이터를 반환.");

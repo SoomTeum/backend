@@ -17,23 +17,14 @@ import java.util.stream.Collectors;
 public class AiReviewService {
 
     private final GeminiApiClient geminiApiClient;
-    private final CrawlingService crawlingService;
 
     @Value("${GEMINI_API_KEY}")
     private String geminiKey;
 
     public AiReviewResponse summarizeByPlaceName(AiReviewRequest req) throws IOException {
-        // 1. 크롤링 서비스 호출
-        List<String> reviewTexts = crawlingService.fetchReviewsByPlaceName(req.getPlaceName());
+        String prompt = buildPrompt(req.getPlaceName());
 
-        if (reviewTexts.isEmpty()) {
-            return new AiReviewResponse("요약할 리뷰를 찾을 수 없습니다.");
-        }
-
-        // 2. LLM에게 보낼 프롬프트 생성
-        String prompt = buildPrompt(reviewTexts);
-
-        // 3. Gemini API 호출
+        // Gemini API 호출
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(
@@ -43,17 +34,14 @@ public class AiReviewService {
         );
         Map<String, Object> rawResponse = geminiApiClient.generateContent(geminiKey, requestBody);
 
-        // 4. API 응답에서 요약 텍스트 추출 및 DTO로 변환
+        // API 응답에서 요약 텍스트 추출 및 DTO로 변환
         return extractSummary(rawResponse);
     }
 
-    private String buildPrompt(List<String> reviewTexts) {
-        String combinedReviews = reviewTexts.stream()
-                .collect(Collectors.joining("\n"));
-
+    private String buildPrompt(String placeName) {
         return String.format(
-                "아래 리뷰들을 종합해서 방문객에게 유용한 정보만 담아 자연스러운 한 문단으로 요약해줘. 긍정적인 점과 아쉬운 점을 모두 포함해줘. 다른 설명 없이 요약된 문장만 말해줘.\n\n--- 리뷰 본문 ---\n%s",
-                combinedReviews
+                "너는 전 세계 모든 여행지의 리뷰를 알고 있는 여행 전문가야. '%s'의 최신 리뷰들을 아는 것처럼 자연스러운 한 문단으로 요약해줘. 긍정적인 점과 아쉬운 점을 모두 포함해줘. 다른 설명 없이 요약된 문장만 말해줘.",
+                placeName
         );
     }
 
@@ -68,7 +56,6 @@ public class AiReviewService {
 
             return new AiReviewResponse(summaryText.trim());
         } catch (Exception e) {
-            // !!로그추가 예정
             return new AiReviewResponse("AI 응답을 처리하는 중 오류가 발생했습니다.");
         }
     }
