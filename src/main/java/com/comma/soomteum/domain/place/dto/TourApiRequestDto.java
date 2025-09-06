@@ -45,6 +45,7 @@ public final class TourApiRequestDto {
         private Integer sigunguCode;      // 시/군/구 코드
         private String cat1;
         private String cat2;
+        private Integer contentTypeId;
 
         @Builder.Default private Integer pageNo = 1;
         @Builder.Default private Integer numOfRows = 20;

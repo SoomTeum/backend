@@ -1,5 +1,6 @@
 package com.comma.soomteum.domain.tour.controller;
 
+import com.comma.soomteum.domain.ai.adapter.AiServiceAdapter;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.tour.service.RecommendPlacesService;
@@ -24,7 +25,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @Validated
 public class RecommendPlacesController {
-
+    private final AiServiceAdapter aiServiceAdapter;
     private final RecommendPlacesService recommendPlacesService;
 
     @Operation(
