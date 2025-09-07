@@ -203,7 +203,7 @@ public class UserPlaceService {
     }
 
     @Transactional
-    public UserPlaceResponseDto setActionByContentId(Long userId, String contentId, Long regionId, Long themeId, BigDecimal cnctrLevel, UserActionType type, boolean enable) {
+    public UserPlaceResponseDto setActionByContentId(Long userId, String contentId, String regionName, String themeName, BigDecimal cnctrLevel, UserActionType type, boolean enable) {
         if (userId == null) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         }
@@ -211,7 +211,7 @@ public class UserPlaceService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         
-        var place = placeService.findOrCreatePlace(contentId, regionId, themeId, cnctrLevel);
+        var place = placeService.findOrCreatePlace(contentId, regionName, themeName, cnctrLevel);
         
         if (place.getPlaceId() == null) {
             throw new CustomException(ErrorCode.PLACE_NOT_FOUND);

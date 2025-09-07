@@ -19,13 +19,13 @@ public class PlaceActionRequestDto {
     @Schema(description = "공공데이터 API의 컨텐츠 ID", example = "123456")
     private String contentId;
 
-    @NotNull
-    @Schema(description = "지역 ID", example = "1")
-    private Long regionId;
+    @NotBlank
+    @Schema(description = "지역명", example = "서울")
+    private String regionName;
 
-    @NotNull
-    @Schema(description = "테마 ID", example = "2")
-    private Long themeId;
+    @NotBlank
+    @Schema(description = "테마명", example = "자연")
+    private String themeName;
 
     @NotNull
     @Schema(description = "혼잡도 레벨", example = "3.5")
