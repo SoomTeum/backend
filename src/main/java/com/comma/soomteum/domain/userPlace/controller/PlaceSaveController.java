@@ -47,8 +47,8 @@ public class PlaceSaveController {
         var dto = userPlaceService.setActionByContentId(
                 user.getUserId(),
                 request.getContentId(), 
-                request.getRegionId(), 
-                request.getThemeId(), 
+                request.getRegionName(), 
+                request.getThemeName(), 
                 request.getCnctrLevel(),
                 UserActionType.SAVE, 
                 true);
@@ -91,7 +91,7 @@ public class PlaceSaveController {
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(value = "page", defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(value = "size", defaultValue = "20") int size) {
 
-        var result = userPlaceService.getMyPlaces(user.getUserId(), UserActionType.SAVE, page, size);
+        var result = userPlaceService.getMyPlaces(user.getUserId (), UserActionType.SAVE, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

@@ -42,8 +42,8 @@ public class PlaceLikeController {
         UserPlaceResponseDto responseDto = userPlaceService.setActionByContentId(
                 user.getUserId(),
                 request.getContentId(), 
-                request.getRegionId(), 
-                request.getThemeId(), 
+                request.getRegionName(), 
+                request.getThemeName(), 
                 request.getCnctrLevel(),
                 UserActionType.LIKE, 
                 true);

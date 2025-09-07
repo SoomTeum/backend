@@ -88,16 +88,16 @@ public class PlaceService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Place findOrCreatePlace(String contentId, Long regionId, Long themeId, BigDecimal cnctrLevel) {
+    public Place findOrCreatePlace(String contentId, String regionName, String themeName, BigDecimal cnctrLevel) {
         return placeRepository.findByContentId(contentId)
-                .orElseGet(() -> createPlace(contentId, regionId, themeId, cnctrLevel));
+                .orElseGet(() -> createPlace(contentId, regionName, themeName, cnctrLevel));
     }
 
-    private Place createPlace(String contentId, Long regionId, Long themeId, BigDecimal cnctrLevel) {
-        var region = regionRepository.findById(regionId)
+    private Place createPlace(String contentId, String regionName, String themeName, BigDecimal cnctrLevel) {
+        var region = regionRepository.findByName(regionName)
                 .orElseThrow(() -> new CustomException(ErrorCode.REGION_NOT_FOUND));
         
-        var theme = themeRepository.findById(themeId)
+        var theme = themeRepository.findByName(themeName)
                 .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
 
         var place = Place.builder()
