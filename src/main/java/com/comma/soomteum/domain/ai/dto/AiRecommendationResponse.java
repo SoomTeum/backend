@@ -1,8 +1,13 @@
 package com.comma.soomteum.domain.ai.dto;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Value;
 
-@Value
+@Getter
+@Setter
+@NoArgsConstructor
 public class AiRecommendationResponse {
     String title;
     String contentid;
@@ -11,5 +16,5 @@ public class AiRecommendationResponse {
     String firstimage;
     String dist;
     String cnctrRate;
-    //Integer rank; //1-5단계?
+    int congestionLevel; //여행지 rank 추가
 }

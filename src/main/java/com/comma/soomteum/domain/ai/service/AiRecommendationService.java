@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class AiRecommendationService {
@@ -23,12 +24,17 @@ public class AiRecommendationService {
     private static final double SHRINKAGE_LAMBDA = 0.7;
     private static final double MAX_SHARPNESS = 10.0;
     private static final double MIN_SHARPNESS = 0.01;
+    // 절대적 혼잡도 레벨 기준
+    private static final double CONGESTION_LEVEL_1_THRESHOLD = 30.0; // 쾌적
+    private static final double CONGESTION_LEVEL_2_THRESHOLD = 70.0; // 보통
+    private static final double CONGESTION_LEVEL_3_THRESHOLD = 90.0; // 붐빔
 
 
     public List<AiRecommendationResponse> createRankedRecommendations(List<AiRecommendationRequest> items) {
         if (items == null || items.isEmpty()) {
             return Collections.emptyList();
         }
+
 
         // --- 데이터 준비 및 동적 샤프니스 계산 ---
         double[] sortedDists = items.stream().mapToDouble(item -> parseDouble(item.getDist())).sorted().toArray();
@@ -57,7 +63,6 @@ public class AiRecommendationService {
         validCongestionScores.sort(Double::compare);
         double dynamicPenalty = validCongestionScores.isEmpty() ? FIXED_PENALTY_SCORE : findQuantile(validCongestionScores, 0.2);
         double finalPenaltyScore = (SHRINKAGE_LAMBDA * FIXED_PENALTY_SCORE) + ((1 - SHRINKAGE_LAMBDA) * dynamicPenalty);
-
 
         // --- 최종 점수 계산 ---
         List<ScoredItem> scoredItems = new ArrayList<>();
@@ -88,15 +93,23 @@ public class AiRecommendationService {
         List<AiRecommendationResponse> rankedItems = scoredItems.stream()
                 .map(scoredItem -> {
                     AiRecommendationRequest original = scoredItem.originalItem();
-                    return new AiRecommendationResponse(
-                            original.getTitle(),
-                            original.getContentid(),
-                            original.getCat1(),
-                            original.getCat2(),
-                            original.getFirstimage(),
-                            original.getDist(),
-                            original.getCnctrRate()
-                    );
+
+                    // 추가: 각 아이템의 혼잡도 랭킹 계산
+                    double rateValue = parseDouble(original.getCnctrRate());
+                    int level = determineCongestionLevel(rateValue);
+
+                    AiRecommendationResponse dto = new AiRecommendationResponse();
+
+                    dto.setTitle(original.getTitle());
+                    dto.setContentid(original.getContentid());
+                    dto.setCat1(original.getCat1());
+                    dto.setCat2(original.getCat2());
+                    dto.setFirstimage(original.getFirstimage());
+                    dto.setDist(original.getDist());
+                    dto.setCnctrRate(original.getCnctrRate());
+                    dto.setCongestionLevel(level);
+                    System.out.println(dto.getCongestionLevel());
+                    return dto;
                 })
                 .collect(Collectors.toList());
 
@@ -105,6 +118,23 @@ public class AiRecommendationService {
 
 
     // --- 헬퍼 메소드들 ---
+
+    // 추가: 혼잡도 랭킹을 결정하는 헬퍼 메소드
+    private int determineCongestionLevel(double rateValue) {
+        if (rateValue < 0) { // 데이터가 없는 경우 (-1, -2 등)
+            return -1; // 레벨 0: 정보 없음
+        }
+        if (rateValue <= CONGESTION_LEVEL_1_THRESHOLD) {
+            return 1; // 레벨 1: 쾌적
+        } else if (rateValue <= CONGESTION_LEVEL_2_THRESHOLD) {
+            return 2; // 레벨 2: 보통
+        } else if (rateValue <= CONGESTION_LEVEL_3_THRESHOLD) {
+            return 3; // 레벨 3: 붐빔
+        } else {
+            return 4; // 레벨 4: 매우 붐빔
+        }
+    }
+
     private double parseDouble(String value) {
         try {
             return Double.parseDouble(value);
