@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-@Tag(name = "디버그", description = "데이터 확인용 API (개발환경에서만 사용)")
+@Tag(name = "디버그- parking", description = "데이터 확인용 API (개발환경에서만 사용)")
 @RestController
 @RequestMapping("/api/debug")
 @RequiredArgsConstructor
