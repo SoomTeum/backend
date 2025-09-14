@@ -25,9 +25,10 @@ public class AiRecommendationService {
     private static final double MAX_SHARPNESS = 10.0;
     private static final double MIN_SHARPNESS = 0.01;
     // 절대적 혼잡도 레벨 기준
-    private static final double CONGESTION_LEVEL_1_THRESHOLD = 30.0; // 쾌적
-    private static final double CONGESTION_LEVEL_2_THRESHOLD = 70.0; // 보통
-    private static final double CONGESTION_LEVEL_3_THRESHOLD = 90.0; // 붐빔
+    private static final double CONGESTION_LEVEL_1_THRESHOLD = 20.0; // 쾌적
+    private static final double CONGESTION_LEVEL_2_THRESHOLD = 40.0; // 보통
+    private static final double CONGESTION_LEVEL_3_THRESHOLD = 60.0; // 붐빔
+    private static final double CONGESTION_LEVEL_4_THRESHOLD = 80.0; // 많이붐빔
 
 
     public List<AiRecommendationResponse> createRankedRecommendations(List<AiRecommendationRequest> items) {
@@ -108,7 +109,6 @@ public class AiRecommendationService {
                     dto.setDist(original.getDist());
                     dto.setCnctrRate(original.getCnctrRate());
                     dto.setCongestionLevel(level);
-                    System.out.println(dto.getCongestionLevel());
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -122,7 +122,7 @@ public class AiRecommendationService {
     // 추가: 혼잡도 랭킹을 결정하는 헬퍼 메소드
     private int determineCongestionLevel(double rateValue) {
         if (rateValue < 0) { // 데이터가 없는 경우 (-1, -2 등)
-            return -1; // 레벨 0: 정보 없음
+            return 5; // 정보 없으면 레벨 5로 기본 설정 or 아예 0으로 설정?
         }
         if (rateValue <= CONGESTION_LEVEL_1_THRESHOLD) {
             return 1; // 레벨 1: 쾌적
@@ -130,8 +130,10 @@ public class AiRecommendationService {
             return 2; // 레벨 2: 보통
         } else if (rateValue <= CONGESTION_LEVEL_3_THRESHOLD) {
             return 3; // 레벨 3: 붐빔
-        } else {
+        } else if (rateValue <= CONGESTION_LEVEL_4_THRESHOLD){
             return 4; // 레벨 4: 매우 붐빔
+        } else {
+            return 5; // 레벨 5: 매우매우 붐빔
         }
     }
 
