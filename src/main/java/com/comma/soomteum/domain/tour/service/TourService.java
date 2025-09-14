@@ -5,6 +5,7 @@ import com.comma.soomteum.domain.place.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest; // AI 요청 DTO 임포트
+import com.comma.soomteum.domain.place.service.KorAreaService;
 import com.comma.soomteum.domain.place.service.KorLocationService;
 import com.comma.soomteum.domain.place.service.TatsCnctrService;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +17,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class RecommendPlacesService {
+public class TourService {
 
     private final KorLocationService korLocationService;
+    private final KorAreaService korAreaService;
     private final TatsCnctrService tatsCnctrService;
     private final AiServiceAdapter aiServiceAdapter;
 
-    public Flux<TatsCnctrResponse.TatsCnctrResponseDto> recommendPlaces(TourApiRequestDto.LocationBasedList2 request) {
+    public Flux<TatsCnctrResponse.TatsCnctrResponseDto> locationPlaces(TourApiRequestDto.LocationBasedList2 request) {
         return korLocationService.locationBasedList(request)
                 .flatMapMany(response -> Flux.fromIterable(response.getBody().getItems().getItem()))
                 .flatMap(this::addCnctrRateToPlace)
@@ -50,6 +52,41 @@ public class RecommendPlacesService {
                 // 5. 정렬한 최종 리스트를 다시 스트림(Flux)으로 변환
                 .flatMapMany(Flux::fromIterable)
                 // 6. AI 출력 DTO(AiRecommendationResponse)를 최종 DTO(TatsCnctrResponseDto)로 변환
+                .map(aiResponse -> {
+                    TatsCnctrResponse.TatsCnctrResponseDto finalDto = new TatsCnctrResponse.TatsCnctrResponseDto();
+                    finalDto.setTitle(aiResponse.getTitle());
+                    finalDto.setContentid(aiResponse.getContentid());
+                    finalDto.setCat1(aiResponse.getCat1());
+                    finalDto.setCat2(aiResponse.getCat2());
+                    finalDto.setFirstimage(aiResponse.getFirstimage());
+                    finalDto.setDist(aiResponse.getDist());
+                    finalDto.setCnctrRate(aiResponse.getCnctrRate());
+                    return finalDto;
+                });
+    }
+
+    public Flux<TatsCnctrResponse.TatsCnctrResponseDto> AreaPlaces(TourApiRequestDto.AreaBasedList2 request) {
+        return korAreaService.areaBasedList(request)
+                .flatMapMany(response -> Flux.fromIterable(response.getBody().getItems().getItem()))
+                .flatMap(this::addCnctrRateToPlace)
+                .collectList()
+                .flatMap(candidateList -> Mono.fromCallable(() -> {
+
+                    List<AiRecommendationRequest> aiRequestItems = candidateList.stream()
+                            .map(dto -> new AiRecommendationRequest(
+                                    dto.getTitle(),
+                                    dto.getContentid(),
+                                    dto.getCat1(),
+                                    dto.getCat2(),
+                                    dto.getFirstimage(),
+                                    dto.getDist(),
+                                    dto.getCnctrRate()
+                            ))
+                            .collect(Collectors.toList());
+
+                    return aiServiceAdapter.createRankedRecommendations(aiRequestItems);
+                }))
+                .flatMapMany(Flux::fromIterable)
                 .map(aiResponse -> {
                     TatsCnctrResponse.TatsCnctrResponseDto finalDto = new TatsCnctrResponse.TatsCnctrResponseDto();
                     finalDto.setTitle(aiResponse.getTitle());
