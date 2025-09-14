@@ -8,7 +8,7 @@ import com.comma.soomteum.domain.parking.service.PublicParkingService;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
-import com.comma.soomteum.domain.tour.service.RecommendPlacesService;
+import com.comma.soomteum.domain.tour.service.TourService;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ import java.util.List;
 public class PlaceDetailIntegratedService {
 
     private final KorDetailService korDetailService;
-    private final RecommendPlacesService recommendPlacesService;
+    private final TourService recommendPlacesService;
     private final UserPlaceService userPlaceService;
     private final AiReviewService aiReviewService;
     private final PublicParkingService publicParkingService;
@@ -88,7 +88,7 @@ public class PlaceDetailIntegratedService {
         }
 
         try {
-            return recommendPlacesService.recommendPlaces(
+            return recommendPlacesService.locationPlaces(
                     TourApiRequestDto.LocationBasedList2.builder()
                             .mapX(Double.parseDouble(longitude))
                             .mapY(Double.parseDouble(latitude))

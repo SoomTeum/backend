@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-@Tag(name = "KOR Service2", description = "한국관광공사 OpenAPI 연동")
+@Tag(name = "디버그- KorService2", description = "한국관광공사 데이터 확인용 API (개발환경에서만 사용)")
 @RestController
-@RequestMapping(path = "/api/kor", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/api/debug", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @Validated
 public class KorService2Controller {
