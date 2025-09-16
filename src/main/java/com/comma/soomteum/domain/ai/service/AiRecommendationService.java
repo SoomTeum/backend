@@ -122,7 +122,7 @@ public class AiRecommendationService {
     // 추가: 혼잡도 랭킹을 결정하는 헬퍼 메소드
     private int determineCongestionLevel(double rateValue) {
         if (rateValue < 0) { // 데이터가 없는 경우 (-1, -2 등)
-            return 5; // 정보 없으면 레벨 5로 기본 설정 or 아예 0으로 설정?
+            return -1; // (수정)정보 없으면 레벨 -1로 설정
         }
         if (rateValue <= CONGESTION_LEVEL_1_THRESHOLD) {
             return 1; // 레벨 1: 쾌적
