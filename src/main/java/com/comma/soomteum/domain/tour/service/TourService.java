@@ -61,6 +61,7 @@ public class TourService {
                     finalDto.setFirstimage(aiResponse.getFirstimage());
                     finalDto.setDist(aiResponse.getDist());
                     finalDto.setCnctrRate(aiResponse.getCnctrRate());
+                    finalDto.setCongestionLevel(aiResponse.getCongestionLevel());
                     return finalDto;
                 });
     }

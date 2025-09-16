@@ -62,6 +62,7 @@ public class TatsCnctrResponse {
         private String firstimage;
         private String dist;
         private String cnctrRate;
+        private int congestionLevel;
     }
 }
 
