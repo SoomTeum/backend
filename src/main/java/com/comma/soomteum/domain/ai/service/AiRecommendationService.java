@@ -24,11 +24,11 @@ public class AiRecommendationService {
     private static final double SHRINKAGE_LAMBDA = 0.7;
     private static final double MAX_SHARPNESS = 10.0;
     private static final double MIN_SHARPNESS = 0.01;
-    // 절대적 혼잡도 레벨 기준
-    private static final double CONGESTION_LEVEL_1_THRESHOLD = 20.0; // 쾌적
-    private static final double CONGESTION_LEVEL_2_THRESHOLD = 40.0; // 보통
-    private static final double CONGESTION_LEVEL_3_THRESHOLD = 60.0; // 붐빔
-    private static final double CONGESTION_LEVEL_4_THRESHOLD = 80.0; // 많이붐빔
+    // 절대적 한적함 레벨 기준
+    private static final double QUIETNESS_LEVEL_1_THRESHOLD = 20.0; // 쾌적
+    private static final double QUIETNESS_LEVEL_2_THRESHOLD = 40.0; // 보통
+    private static final double QUIETNESS_LEVEL_3_THRESHOLD = 60.0; // 붐빔
+    private static final double QUIETNESS_LEVEL_4_THRESHOLD = 80.0; // 많이붐빔
 
 
     public List<AiRecommendationResponse> createRankedRecommendations(List<AiRecommendationRequest> items) {
@@ -95,9 +95,9 @@ public class AiRecommendationService {
                 .map(scoredItem -> {
                     AiRecommendationRequest original = scoredItem.originalItem();
 
-                    // 추가: 각 아이템의 혼잡도 랭킹 계산
+                    // 추가: 각 아이템의 한적함 랭킹 계산
                     double rateValue = parseDouble(original.getCnctrRate());
-                    int level = determineCongestionLevel(rateValue);
+                    int level = determineQuietnessLevel(rateValue);
 
                     AiRecommendationResponse dto = new AiRecommendationResponse();
 
@@ -108,7 +108,7 @@ public class AiRecommendationService {
                     dto.setFirstimage(original.getFirstimage());
                     dto.setDist(original.getDist());
                     dto.setCnctrRate(original.getCnctrRate());
-                    dto.setCongestionLevel(level);
+                    dto.setQuietnessLevel(level);
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -119,18 +119,18 @@ public class AiRecommendationService {
 
     // --- 헬퍼 메소드들 ---
 
-    // 추가: 혼잡도 랭킹을 결정하는 헬퍼 메소드
-    private int determineCongestionLevel(double rateValue) {
+    // 추가: 한적함 랭킹을 결정하는 헬퍼 메소드
+    private int determineQuietnessLevel(double rateValue) {
         if (rateValue < 0) { // 데이터가 없는 경우 (-1, -2 등)
             return -1; // (수정)정보 없으면 레벨 -1로 설정
         }
-        if (rateValue <= CONGESTION_LEVEL_1_THRESHOLD) {
+        if (rateValue <= QUIETNESS_LEVEL_1_THRESHOLD) {
             return 1; // 레벨 1: 쾌적
-        } else if (rateValue <= CONGESTION_LEVEL_2_THRESHOLD) {
+        } else if (rateValue <= QUIETNESS_LEVEL_2_THRESHOLD) {
             return 2; // 레벨 2: 보통
-        } else if (rateValue <= CONGESTION_LEVEL_3_THRESHOLD) {
+        } else if (rateValue <= QUIETNESS_LEVEL_3_THRESHOLD) {
             return 3; // 레벨 3: 붐빔
-        } else if (rateValue <= CONGESTION_LEVEL_4_THRESHOLD){
+        } else if (rateValue <= QUIETNESS_LEVEL_4_THRESHOLD){
             return 4; // 레벨 4: 매우 붐빔
         } else {
             return 5; // 레벨 5: 매우매우 붐빔
