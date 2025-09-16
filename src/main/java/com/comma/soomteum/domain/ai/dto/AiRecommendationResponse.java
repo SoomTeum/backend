@@ -16,5 +16,5 @@ public class AiRecommendationResponse {
     String firstimage;
     String dist;
     String cnctrRate;
-    int congestionLevel; //여행지 rank 추가
+    int quietnessLevel; //여행지 rank 추가
 }

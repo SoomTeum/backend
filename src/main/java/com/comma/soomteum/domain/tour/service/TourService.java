@@ -61,7 +61,7 @@ public class TourService {
                     finalDto.setFirstimage(aiResponse.getFirstimage());
                     finalDto.setDist(aiResponse.getDist());
                     finalDto.setCnctrRate(aiResponse.getCnctrRate());
-                    finalDto.setCongestionLevel(aiResponse.getCongestionLevel());
+                    finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
                     return finalDto;
                 });
     }
@@ -97,7 +97,7 @@ public class TourService {
                     finalDto.setFirstimage(aiResponse.getFirstimage());
                     finalDto.setDist(aiResponse.getDist());
                     finalDto.setCnctrRate(aiResponse.getCnctrRate());
-                    finalDto.setCongestionLevel(aiResponse.getCongestionLevel());
+                    finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
                     return finalDto;
                 });
     }
