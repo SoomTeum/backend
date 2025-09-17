@@ -3,6 +3,7 @@ package com.comma.soomteum.domain.userPlace.controller;
 import com.comma.soomteum.domain.auth.annotation.LoginUser;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.userPlace.dto.PlaceActionRequestDto;
+import com.comma.soomteum.domain.userPlace.dto.PlaceLikeStatusResponseDto;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
@@ -80,5 +81,24 @@ public class PlaceLikeController {
             @RequestParam String contentId) {
         long likeCount = userPlaceService.getActionCountByContentId(contentId, UserActionType.LIKE);
         return ResponseEntity.ok(ApiResponse.ok(likeCount));
+    }
+
+    @Operation(
+            summary = "장소 좋아요 상태 조회", 
+            description = "사용자가 특정 장소에 좋아요를 눌렀는지 확인합니다.",
+            security = @SecurityRequirement(name = "JWT TOKEN")
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "좋아요 상태 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/like/status")
+    public ResponseEntity<ApiResponse<PlaceLikeStatusResponseDto>> getPlaceLikeStatus(
+            @Parameter(description = "공공데이터 API의 컨텐츠 ID", required = true, example = "128758")
+            @RequestParam String contentId,
+            @Parameter(hidden = true) @LoginUser User user) {
+        boolean isLiked = userPlaceService.isUserActionExists(user.getUserId(), contentId, UserActionType.LIKE);
+        PlaceLikeStatusResponseDto responseDto = PlaceLikeStatusResponseDto.of(isLiked, contentId);
+        return ResponseEntity.ok(ApiResponse.ok(responseDto));
     }
 }

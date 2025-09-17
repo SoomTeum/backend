@@ -258,4 +258,16 @@ public class UserPlaceService {
                 .message(type + " " + (enable ? "ON" : "OFF"))
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public boolean isUserActionExists(Long userId, String contentId, UserActionType type) {
+        var placeOpt = placeService.findByContentId(contentId);
+        if (placeOpt.isEmpty()) {
+            return false;
+        }
+        
+        var place = placeOpt.get();
+        return userPlaceRepository.existsByUser_UserIdAndPlace_PlaceIdAndType(
+                userId, place.getPlaceId(), type);
+    }
 }
