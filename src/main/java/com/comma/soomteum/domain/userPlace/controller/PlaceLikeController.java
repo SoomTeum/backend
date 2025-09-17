@@ -94,6 +94,7 @@ public class PlaceLikeController {
     })
     @GetMapping("/like/status")
     public ResponseEntity<ApiResponse<PlaceLikeStatusResponseDto>> getPlaceLikeStatus(
+            @Parameter(description = "공공데이터 API의 컨텐츠 ID", required = true, example = "128758")
             @RequestParam String contentId,
             @Parameter(hidden = true) @LoginUser User user) {
         boolean isLiked = userPlaceService.isUserActionExists(user.getUserId(), contentId, UserActionType.LIKE);
