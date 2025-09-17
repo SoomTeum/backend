@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface ThemeRepository extends JpaRepository<Theme, Long> {
     Optional<Theme> findByName(String name);
     Optional<Theme> findByCat2(String cat2);
+    Optional<Theme> findByCat1AndCat2(String cat1, String cat2);
 }

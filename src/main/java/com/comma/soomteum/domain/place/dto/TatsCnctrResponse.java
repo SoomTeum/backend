@@ -59,8 +59,13 @@ public class TatsCnctrResponse {
         private String contentid;
         private String cat1;
         private String cat2;
+        private String catName;
+        private Integer areaCode;
+        private Integer sigunguCode;
+        private String areaName;
         private String firstimage;
         private String dist;
+        private Long likeCount;
         private String cnctrRate;
         private int quietnessLevel;
     }
