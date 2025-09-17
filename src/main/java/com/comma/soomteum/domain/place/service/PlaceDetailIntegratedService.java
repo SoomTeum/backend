@@ -6,10 +6,13 @@ import com.comma.soomteum.domain.ai.service.AiRecommendationService;
 import com.comma.soomteum.domain.ai.service.AiReviewService;
 import com.comma.soomteum.domain.parking.dto.PublicParkingResponseDto;
 import com.comma.soomteum.domain.parking.service.PublicParkingService;
+import com.comma.soomteum.domain.place.dto.CategoryCodeResponse;
 import com.comma.soomteum.domain.place.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.theme.entity.Theme;
+import com.comma.soomteum.domain.theme.repository.ThemeRepository;
 import com.comma.soomteum.domain.tour.service.TourService;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
@@ -27,11 +30,13 @@ import java.util.List;
 public class PlaceDetailIntegratedService {
 
     private final KorDetailService korDetailService;
+    private final KorCategoryService korCategoryService;
     private final TourService recommendPlacesService;
     private final UserPlaceService userPlaceService;
     private final AiReviewService aiReviewService;
     private final AiRecommendationService aiRecommendationService;
     private final PublicParkingService publicParkingService;
+    private final ThemeRepository themeRepository;
 
     private static final String GANGNEUNG_REGION_CODE = "32230";
     private static final String GANGNEUNG_AREA_CODE = "32";
@@ -75,14 +80,64 @@ public class PlaceDetailIntegratedService {
             builder.likeCount(0L);
         }
 
-        // 한적함 등급 조회 (비동기)
-        return getTranquilityLevel(contentId, item.getTitle(), item.getMapx(), item.getMapy())
-                .flatMap(tranquilityLevel -> {
-                    builder.tranquilityLevel(tranquilityLevel);
-                    
+        // 한적함 등급 및 테마 정보 조회 (비동기)
+        return getTranquilityLevelAndTheme(contentId, item.getTitle(), item.getMapx(), item.getMapy())
+                .flatMap(result -> {
+                    builder.tranquilityLevel(result.getTranquilityLevel());
+                    builder.theme(result.getTheme());
+                    builder.themeName(result.getThemeName());
+
                     // 지역 정보 설정 및 강릉시 전용 기능 처리
                     return processRegionSpecificFeatures(builder, item, contentId);
                 });
+    }
+
+    private Mono<TranquilityAndThemeResult> getTranquilityLevelAndTheme(String contentId, String title, String longitude, String latitude) {
+        if (longitude == null || latitude == null) {
+            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
+        }
+
+        try {
+            return recommendPlacesService.locationPlaces(
+                    TourApiRequestDto.LocationBasedList2.builder()
+                            .mapX(Double.parseDouble(longitude))
+                            .mapY(Double.parseDouble(latitude))
+                            .radius(1000)
+                            .build())
+                    .filter(item -> contentId.equals(item.getContentid()))
+                    .next()
+                    .map(item -> {
+                        log.info("locationPlaces에서 받은 item: title={}, contentId={}, cat1={}, cat2={}, cnctrRate={}",
+                                item.getTitle(), item.getContentid(), item.getCat1(), item.getCat2(), item.getCnctrRate());
+
+                        String cnctrRate = item.getCnctrRate();
+                        int tranquilityLevel = calculateTranquilityLevel(cnctrRate);
+
+                        // 테마로 cat2 중분류 코드 반환
+                        String theme = (item.getCat2() != null && !item.getCat2().trim().isEmpty())
+                            ? item.getCat2()
+                            : (item.getCat1() != null ? item.getCat1() : "정보없음");
+
+                        // cat2로 theme name 조회
+                        String themeName = "정보없음";
+                        if (item.getCat2() != null && !item.getCat2().trim().isEmpty()) {
+                            try {
+                                themeName = themeRepository.findByCat2(item.getCat2())
+                                    .map(Theme::getName)
+                                    .orElse("정보없음");
+                            } catch (Exception e) {
+                                log.warn("Theme 조회 실패: cat2={}", item.getCat2(), e);
+                            }
+                        }
+
+                        log.info("최종 테마 설정: theme={}, themeName={}", theme, themeName);
+                        return new TranquilityAndThemeResult(tranquilityLevel, theme, themeName);
+                    })
+                    .defaultIfEmpty(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
+        } catch (Exception e) {
+            log.warn("한적함 등급 및 테마 정보 조회 실패: contentId={}", contentId, e);
+            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
+        }
     }
 
     private Mono<Integer> getTranquilityLevel(String contentId, String title, String longitude, String latitude) {
@@ -145,8 +200,6 @@ public class PlaceDetailIntegratedService {
         String region = extractRegionFromAddress(item.getAddr1());
         builder.region(region);
 
-        // 테마 정보는 별도 서비스에서 조회해야 함 (현재는 기본값 설정)
-        builder.theme("관광지");
 
         // 강릉시인 경우에만 AI 꿀팁과 주차장 정보 추가
         if (isGangneungRegion(region)) {
@@ -213,6 +266,104 @@ public class PlaceDetailIntegratedService {
         } catch (Exception e) {
             log.warn("주변 주차장 조회 실패: longitude={}, latitude={}", longitude, latitude, e);
             return null;
+        }
+    }
+
+    private String determineThemeFromCategories(String cat1, String cat2) {
+        log.info("카테고리 정보 확인: cat1={}, cat2={}", cat1, cat2);
+
+        if (cat1 == null && cat2 == null) {
+            log.warn("cat1과 cat2 모두 null");
+            return "정보없음";
+        }
+
+        try {
+            // cat2(중분류)가 있으면 중분류 이름을 가져오기
+            if (cat2 != null && !cat2.trim().isEmpty()) {
+                log.info("cat2로 카테고리 조회: cat1={}, cat2={}", cat1, cat2);
+                // 특정 cat2의 이름을 얻으려면 cat1과 함께 조회해야 할 수 있음
+                String result = getCategoryNameByCode(cat1, cat2).block();
+                log.info("cat2 조회 결과: {}", result);
+                return result;
+            }
+
+            // cat1(대분류)만 있는 경우
+            if (cat1 != null && !cat1.trim().isEmpty()) {
+                log.info("cat1로 카테고리 조회: {}", cat1);
+                String result = getCategoryNameByCode(cat1, null).block();
+                log.info("cat1 조회 결과: {}", result);
+                return result;
+            }
+
+            log.warn("cat1, cat2 모두 빈 문자열");
+            return "정보없음";
+        } catch (Exception e) {
+            log.warn("카테고리 명칭 조회 실패: cat1={}, cat2={}", cat1, cat2, e);
+            return "정보없음";
+        }
+    }
+
+    private Mono<String> getCategoryNameByCode(String cat1, String cat2) {
+        return korCategoryService.getCategoryCode(
+                TourApiRequestDto.CategoryCode.builder()
+                        .cat1(cat1)
+                        .cat2(cat2)
+                        .build())
+                .map(response -> {
+                    log.info("카테고리 API 응답: {}", response);
+                    if (response.getBody() != null &&
+                        response.getBody().getItems() != null &&
+                        response.getBody().getItems().getItem() != null &&
+                        !response.getBody().getItems().getItem().isEmpty()) {
+
+                        // cat2가 있는 경우: cat2에 해당하는 항목 찾기
+                        if (cat2 != null && !cat2.trim().isEmpty()) {
+                            for (CategoryCodeResponse.Item item : response.getBody().getItems().getItem()) {
+                                if (cat2.equals(item.getCode())) {
+                                    log.info("cat2 매칭됨: code={}, name={}", item.getCode(), item.getName());
+                                    return item.getName();
+                                }
+                            }
+                        }
+
+                        // cat1만 있는 경우: cat1에 해당하는 항목 찾기
+                        if (cat1 != null && !cat1.trim().isEmpty()) {
+                            for (CategoryCodeResponse.Item item : response.getBody().getItems().getItem()) {
+                                if (cat1.equals(item.getCode())) {
+                                    log.info("cat1 매칭됨: code={}, name={}", item.getCode(), item.getName());
+                                    return item.getName();
+                                }
+                            }
+                        }
+
+                        log.warn("매칭되는 카테고리 코드 없음: cat1={}, cat2={}", cat1, cat2);
+                    }
+                    return "정보없음";
+                })
+                .onErrorReturn("정보없음");
+    }
+
+    private static class TranquilityAndThemeResult {
+        private final int tranquilityLevel;
+        private final String theme;
+        private final String themeName;
+
+        public TranquilityAndThemeResult(int tranquilityLevel, String theme, String themeName) {
+            this.tranquilityLevel = tranquilityLevel;
+            this.theme = theme;
+            this.themeName = themeName;
+        }
+
+        public int getTranquilityLevel() {
+            return tranquilityLevel;
+        }
+
+        public String getTheme() {
+            return theme;
+        }
+
+        public String getThemeName() {
+            return themeName;
         }
     }
 }

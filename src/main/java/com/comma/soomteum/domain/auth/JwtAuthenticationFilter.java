@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws IOException, ServletException {
 
-        // CORS preflight는 인증 검사 없이 바로 통과
+        //  preflight는 인증 검사 없이 바로 통과
         if (HttpMethod.OPTIONS.matches(request.getMethod())) {
             if (log.isDebugEnabled()) {
                 log.debug("[JWT] Preflight bypass. uri={}, thread={}", request.getRequestURI(), Thread.currentThread().getName());
