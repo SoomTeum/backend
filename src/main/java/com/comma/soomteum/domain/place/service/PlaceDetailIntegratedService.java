@@ -2,9 +2,11 @@ package com.comma.soomteum.domain.place.service;
 
 import com.comma.soomteum.domain.ai.dto.AiReviewRequest;
 import com.comma.soomteum.domain.ai.dto.AiReviewResponse;
+import com.comma.soomteum.domain.ai.service.AiRecommendationService;
 import com.comma.soomteum.domain.ai.service.AiReviewService;
 import com.comma.soomteum.domain.parking.dto.PublicParkingResponseDto;
 import com.comma.soomteum.domain.parking.service.PublicParkingService;
+import com.comma.soomteum.domain.place.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
@@ -28,6 +30,7 @@ public class PlaceDetailIntegratedService {
     private final TourService recommendPlacesService;
     private final UserPlaceService userPlaceService;
     private final AiReviewService aiReviewService;
+    private final AiRecommendationService aiRecommendationService;
     private final PublicParkingService publicParkingService;
 
     private static final String GANGNEUNG_REGION_CODE = "32230";
@@ -73,7 +76,7 @@ public class PlaceDetailIntegratedService {
         }
 
         // 한적함 등급 조회 (비동기)
-        return getTranquilityLevel(contentId, item.getMapx(), item.getMapy())
+        return getTranquilityLevel(contentId, item.getTitle(), item.getMapx(), item.getMapy())
                 .flatMap(tranquilityLevel -> {
                     builder.tranquilityLevel(tranquilityLevel);
                     
@@ -82,7 +85,7 @@ public class PlaceDetailIntegratedService {
                 });
     }
 
-    private Mono<Integer> getTranquilityLevel(String contentId, String longitude, String latitude) {
+    private Mono<Integer> getTranquilityLevel(String contentId, String title, String longitude, String latitude) {
         if (longitude == null || latitude == null) {
             return Mono.just(-1);
         }
@@ -98,20 +101,39 @@ public class PlaceDetailIntegratedService {
                     .next()
                     .map(item -> {
                         String cnctrRate = item.getCnctrRate();
-                        if (cnctrRate != null && !"-1".equals(cnctrRate)) {
-                            try {
-                                return Integer.parseInt(cnctrRate);
-                            } catch (NumberFormatException e) {
-                                log.warn("한적함 등급 파싱 실패: {}", cnctrRate);
-                                return -1;
-                            }
-                        }
-                        return -1;
+                        return calculateTranquilityLevel(cnctrRate);
                     })
                     .defaultIfEmpty(-1);
         } catch (Exception e) {
             log.warn("한적함 등급 조회 실패: contentId={}", contentId, e);
             return Mono.just(-1);
+        }
+    }
+
+    private Integer calculateTranquilityLevel(String cnctrRate) {
+        try {
+            double rateValue = (cnctrRate != null) ? Double.parseDouble(cnctrRate) : -1.0;
+            return determineTranquilityLevel(rateValue);
+        } catch (NumberFormatException e) {
+            log.warn("한적함 등급 파싱 실패: {}", cnctrRate);
+            return -1;
+        }
+    }
+
+    private int determineTranquilityLevel(double rateValue) {
+        if (rateValue < 0) {
+            return -1;
+        }
+        if (rateValue <= 20.0) {
+            return 1;
+        } else if (rateValue <= 40.0) {
+            return 2;
+        } else if (rateValue <= 60.0) {
+            return 3;
+        } else if (rateValue <= 80.0) {
+            return 4;
+        } else {
+            return 5;
         }
     }
 
