@@ -8,6 +8,8 @@ import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest; // AI 요청 DT
 import com.comma.soomteum.domain.place.service.KorAreaService;
 import com.comma.soomteum.domain.place.service.KorLocationService;
 import com.comma.soomteum.domain.place.service.TatsCnctrService;
+import com.comma.soomteum.domain.theme.repository.ThemeRepository;
+import com.comma.soomteum.domain.region.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -23,6 +25,8 @@ public class TourService {
     private final KorAreaService korAreaService;
     private final TatsCnctrService tatsCnctrService;
     private final AiServiceAdapter aiServiceAdapter;
+    private final ThemeRepository themeRepository;
+    private final RegionRepository regionRepository;
 
     public Flux<TatsCnctrResponse.TatsCnctrResponseDto> locationPlaces(TourApiRequestDto.LocationBasedList2 request) {
         return korLocationService.locationBasedList(request)
@@ -62,6 +66,10 @@ public class TourService {
                     finalDto.setDist(aiResponse.getDist());
                     finalDto.setCnctrRate(aiResponse.getCnctrRate());
                     finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
+                    
+                    // 새로운 필드들 설정 (locationPlaces는 areaCode, sigunguCode가 없어서 null 전달)
+                    setCatNameAndAreaInfo(finalDto, null, null);
+                    
                     return finalDto;
                 });
     }
@@ -98,6 +106,10 @@ public class TourService {
                     finalDto.setDist(aiResponse.getDist());
                     finalDto.setCnctrRate(aiResponse.getCnctrRate());
                     finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
+                    
+                    // 새로운 필드들 설정
+                    setCatNameAndAreaInfo(finalDto, request.getAreaCode(), request.getSigunguCode());
+                    
                     return finalDto;
                 });
     }
@@ -113,6 +125,10 @@ public class TourService {
                     newDto.setFirstimage(place.getFirstimage());
                     newDto.setDist(place.getDist());
                     newDto.setCnctrRate(tatsCnctrDto.getCnctrRate());
+                    
+                    // 새로운 필드들 설정 (addCnctrRateToPlace는 areaCode, sigunguCode가 없어서 null 전달)
+                    setCatNameAndAreaInfo(newDto, null, null);
+                    
                     return newDto;
                 })
                 .onErrorResume(e -> {
@@ -124,7 +140,31 @@ public class TourService {
                     errorDto.setFirstimage(place.getFirstimage());
                     errorDto.setDist(place.getDist());
                     errorDto.setCnctrRate("-2"); // Default value for error
+                    
+                    // 새로운 필드들 설정 (오류 케이스에서도 catName만 설정)
+                    setCatNameAndAreaInfo(errorDto, null, null);
+                    
                     return Mono.just(errorDto);
                 });
+    }
+
+    private void setCatNameAndAreaInfo(TatsCnctrResponse.TatsCnctrResponseDto dto, Integer areaCode, Integer sigunguCode) {
+        // catName 설정
+        if (dto.getCat1() != null && dto.getCat2() != null) {
+            themeRepository.findByCat1AndCat2(dto.getCat1(), dto.getCat2())
+                    .ifPresent(theme -> dto.setCatName(theme.getName()));
+        }
+        
+        // areaCode, sigunguCode, areaName 설정
+        if (areaCode != null && sigunguCode != null) {
+            dto.setAreaCode(areaCode);
+            dto.setSigunguCode(sigunguCode);
+            
+            // areaName 설정
+            regionRepository.findByKorAreaCodeAndKorSigunguCode(
+                    String.valueOf(areaCode), 
+                    String.valueOf(sigunguCode)
+            ).ifPresent(region -> dto.setAreaName(region.getName()));
+        }
     }
 }
