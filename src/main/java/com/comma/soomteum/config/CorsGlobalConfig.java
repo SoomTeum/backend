@@ -21,6 +21,7 @@ public class CorsGlobalConfig {
         // 정확 매칭 (운영/로컬)
         cfg.setAllowedOriginPatterns(Arrays.asList(
                 "https://soomteum.site",
+                "https://www.soomteum.site",
                 "http://localhost:3000"
         ));
 
