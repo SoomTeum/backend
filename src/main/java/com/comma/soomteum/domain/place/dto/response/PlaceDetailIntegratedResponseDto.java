@@ -27,8 +27,11 @@ public class PlaceDetailIntegratedResponseDto {
     @Schema(description = "여행지 지역", example = "강릉시")
     private String region;
 
-    @Schema(description = "테마 분류", example = "자연관광지")
+    @Schema(description = "테마 분류", example = "A0101")
     private String theme;
+
+    @Schema(description = "테마 분류", example = "자연관광지")
+    private String themeName;
 
     @Schema(description = "한적함 등급 (1-5단계, -1: 데이터 없음)", example = "3")
     private Integer tranquilityLevel;

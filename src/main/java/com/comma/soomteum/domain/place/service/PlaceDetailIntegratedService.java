@@ -11,6 +11,8 @@ import com.comma.soomteum.domain.place.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.theme.entity.Theme;
+import com.comma.soomteum.domain.theme.repository.ThemeRepository;
 import com.comma.soomteum.domain.tour.service.TourService;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
@@ -34,6 +36,7 @@ public class PlaceDetailIntegratedService {
     private final AiReviewService aiReviewService;
     private final AiRecommendationService aiRecommendationService;
     private final PublicParkingService publicParkingService;
+    private final ThemeRepository themeRepository;
 
     private static final String GANGNEUNG_REGION_CODE = "32230";
     private static final String GANGNEUNG_AREA_CODE = "32";
@@ -82,6 +85,7 @@ public class PlaceDetailIntegratedService {
                 .flatMap(result -> {
                     builder.tranquilityLevel(result.getTranquilityLevel());
                     builder.theme(result.getTheme());
+                    builder.themeName(result.getThemeName());
 
                     // 지역 정보 설정 및 강릉시 전용 기능 처리
                     return processRegionSpecificFeatures(builder, item, contentId);
@@ -90,7 +94,7 @@ public class PlaceDetailIntegratedService {
 
     private Mono<TranquilityAndThemeResult> getTranquilityLevelAndTheme(String contentId, String title, String longitude, String latitude) {
         if (longitude == null || latitude == null) {
-            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음"));
+            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
         }
 
         try {
@@ -114,13 +118,25 @@ public class PlaceDetailIntegratedService {
                             ? item.getCat2()
                             : (item.getCat1() != null ? item.getCat1() : "정보없음");
 
-                        log.info("최종 테마 설정: {}", theme);
-                        return new TranquilityAndThemeResult(tranquilityLevel, theme);
+                        // cat2로 theme name 조회
+                        String themeName = "정보없음";
+                        if (item.getCat2() != null && !item.getCat2().trim().isEmpty()) {
+                            try {
+                                themeName = themeRepository.findByCat2(item.getCat2())
+                                    .map(Theme::getName)
+                                    .orElse("정보없음");
+                            } catch (Exception e) {
+                                log.warn("Theme 조회 실패: cat2={}", item.getCat2(), e);
+                            }
+                        }
+
+                        log.info("최종 테마 설정: theme={}, themeName={}", theme, themeName);
+                        return new TranquilityAndThemeResult(tranquilityLevel, theme, themeName);
                     })
-                    .defaultIfEmpty(new TranquilityAndThemeResult(-1, "정보없음"));
+                    .defaultIfEmpty(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
         } catch (Exception e) {
             log.warn("한적함 등급 및 테마 정보 조회 실패: contentId={}", contentId, e);
-            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음"));
+            return Mono.just(new TranquilityAndThemeResult(-1, "정보없음", "정보없음"));
         }
     }
 
@@ -330,10 +346,12 @@ public class PlaceDetailIntegratedService {
     private static class TranquilityAndThemeResult {
         private final int tranquilityLevel;
         private final String theme;
+        private final String themeName;
 
-        public TranquilityAndThemeResult(int tranquilityLevel, String theme) {
+        public TranquilityAndThemeResult(int tranquilityLevel, String theme, String themeName) {
             this.tranquilityLevel = tranquilityLevel;
             this.theme = theme;
+            this.themeName = themeName;
         }
 
         public int getTranquilityLevel() {
@@ -342,6 +360,10 @@ public class PlaceDetailIntegratedService {
 
         public String getTheme() {
             return theme;
+        }
+
+        public String getThemeName() {
+            return themeName;
         }
     }
 }
