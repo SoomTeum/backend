@@ -65,6 +65,7 @@ public class TatsCnctrResponse {
         private String areaName;
         private String firstimage;
         private String dist;
+        private Long likeCount;
         private String cnctrRate;
         private int quietnessLevel;
     }

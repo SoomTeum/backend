@@ -8,6 +8,7 @@ import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest; // AI 요청 DT
 import com.comma.soomteum.domain.place.service.KorAreaService;
 import com.comma.soomteum.domain.place.service.KorLocationService;
 import com.comma.soomteum.domain.place.service.TatsCnctrService;
+import com.comma.soomteum.domain.place.service.PlaceService;
 import com.comma.soomteum.domain.theme.repository.ThemeRepository;
 import com.comma.soomteum.domain.region.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class TourService {
     private final AiServiceAdapter aiServiceAdapter;
     private final ThemeRepository themeRepository;
     private final RegionRepository regionRepository;
+    private final PlaceService placeService;
 
     public Flux<TatsCnctrResponse.TatsCnctrResponseDto> locationPlaces(TourApiRequestDto.LocationBasedList2 request) {
         return korLocationService.locationBasedList(request)
@@ -153,6 +155,12 @@ public class TourService {
         if (dto.getCat1() != null && dto.getCat2() != null) {
             themeRepository.findByCat1AndCat2(dto.getCat1(), dto.getCat2())
                     .ifPresent(theme -> dto.setCatName(theme.getName()));
+        }
+        
+        // likeCount 설정
+        if (dto.getContentid() != null) {
+            placeService.findByContentId(dto.getContentid())
+                    .ifPresent(place -> dto.setLikeCount(place.getLikeCount()));
         }
         
         // areaCode, sigunguCode, areaName 설정
