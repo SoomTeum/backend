@@ -212,10 +212,6 @@ public class UserPlaceService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         
         var place = placeService.findOrCreatePlace(contentId, regionName, themeName, cnctrLevel);
-        
-        if (place.getPlaceId() == null) {
-            throw new CustomException(ErrorCode.PLACE_NOT_FOUND);
-        }
 
         boolean changed = false;
 
