@@ -3,6 +3,7 @@ package com.comma.soomteum.domain.userPlace.controller;
 import com.comma.soomteum.domain.auth.annotation.LoginUser;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.userPlace.dto.PlaceActionRequestDto;
+import com.comma.soomteum.domain.userPlace.dto.PlaceSaveStatusResponseDto;
 import com.comma.soomteum.domain.userPlace.dto.UserPlacePageResponseDto;
 import com.comma.soomteum.domain.userPlace.dto.UserPlaceResponseDto;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
@@ -93,5 +94,24 @@ public class PlaceSaveController {
 
         var result = userPlaceService.getMyPlaces(user.getUserId (), UserActionType.SAVE, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @Operation(
+            summary = "장소 저장 상태 조회", 
+            description = "사용자가 특정 장소를 저장했는지 확인합니다.",
+            security = @SecurityRequirement(name = "JWT TOKEN")
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "저장 상태 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/save/status")
+    public ResponseEntity<ApiResponse<PlaceSaveStatusResponseDto>> getPlaceSaveStatus(
+            @Parameter(description = "공공데이터 API의 컨텐츠 ID", required = true, example = "128758")
+            @RequestParam String contentId,
+            @Parameter(hidden = true) @LoginUser User user) {
+        boolean isSaved = userPlaceService.isUserActionExists(user.getUserId(), contentId, UserActionType.SAVE);
+        PlaceSaveStatusResponseDto responseDto = PlaceSaveStatusResponseDto.of(isSaved, contentId);
+        return ResponseEntity.ok(ApiResponse.ok(responseDto));
     }
 }
