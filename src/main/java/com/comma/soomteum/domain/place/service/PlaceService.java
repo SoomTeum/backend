@@ -94,11 +94,17 @@ public class PlaceService {
     }
 
     private Place createPlace(String contentId, String regionName, String themeName, BigDecimal cnctrLevel) {
+        // Region 찾기 - 없으면 기본값 사용
         var region = regionRepository.findByName(regionName)
-                .orElseThrow(() -> new CustomException(ErrorCode.REGION_NOT_FOUND));
-        
+                .orElse(regionRepository.findByName("강릉시")
+                        .orElse(regionRepository.findAll().stream().findFirst()
+                                .orElseThrow(() -> new CustomException(ErrorCode.REGION_NOT_FOUND))));
+
+        // Theme 찾기 - 없으면 기본값 사용
         var theme = themeRepository.findByName(themeName)
-                .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND));
+                .orElse(themeRepository.findByName("기타")
+                        .orElse(themeRepository.findAll().stream().findFirst()
+                                .orElseThrow(() -> new CustomException(ErrorCode.THEME_NOT_FOUND))));
 
         var place = Place.builder()
                 .contentId(contentId)
