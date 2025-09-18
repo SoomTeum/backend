@@ -20,7 +20,7 @@ public class PlaceActionRequestDto {
     private String contentId;
 
     @NotBlank
-    @Schema(description = "지역명", example = "서울")
+    @Schema(description = "지역명", example = "강릉시")
     private String regionName;
 
     @NotBlank
