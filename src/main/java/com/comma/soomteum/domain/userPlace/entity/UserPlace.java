@@ -15,12 +15,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "user_place",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uq_user_place_user_place_type",
-                        columnNames = {"user_id", "place_id", "type"}
-                )
-        },
         indexes = {
                 @Index(name = "idx_user_place_place_type", columnList = "place_id,type"), // like 카운트/랭킹에 유용
                 @Index(name = "idx_user_place_user_type",  columnList = "user_id,type")   // 내 저장/좋아요 목록 조회
