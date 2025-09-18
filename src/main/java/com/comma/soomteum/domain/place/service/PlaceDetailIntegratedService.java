@@ -211,12 +211,55 @@ public class PlaceDetailIntegratedService {
 
     private String extractRegionFromAddress(String address) {
         if (address == null) return "정보없음";
-        
+
+        if (address.contains("강남구")) return "강남구";
+        if (address.contains("강동구")) return "강동구";
+        if (address.contains("강북구")) return "강북구";
+        if (address.contains("강서구")) return "강서구";
+        if (address.contains("관악구")) return "관악구";
+        if (address.contains("광진구")) return "광진구";
+        if (address.contains("구로구")) return "구로구";
+        if (address.contains("금천구")) return "금천구";
+        if (address.contains("노원구")) return "노원구";
+        if (address.contains("도봉구")) return "도봉구";
+        if (address.contains("동대문구")) return "동대문구";
+        if (address.contains("동작구")) return "동작구";
+        if (address.contains("마포구")) return "마포구";
+        if (address.contains("서대문구")) return "서대문구";
+        if (address.contains("서초구")) return "서초구";
+        if (address.contains("성동구")) return "성동구";
+        if (address.contains("성북구")) return "성북구";
+        if (address.contains("송파구")) return "송파구";
+        if (address.contains("양천구")) return "양천구";
+        if (address.contains("영등포구")) return "영등포구";
+        if (address.contains("용산구")) return "용산구";
+        if (address.contains("은평구")) return "은평구";
+        if (address.contains("종로구")) return "종로구";
+        if (address.contains("중구")) return "중구";
+        if (address.contains("중랑구")) return "중랑구";
+
+        if (address.contains("강화군")) return "강화군";
+        if (address.contains("계양구")) return "계양구";
+        if (address.contains("미추홀구")) return "미추홀구";
+        if (address.contains("남동구")) return "남동구";
+        if (address.contains("동구")) return "동구";
+        if (address.contains("부평구")) return "부평구";
+        if (address.contains("서구")) return "서구";
+        if (address.contains("연수구")) return "연수구";
+        if (address.contains("옹진군")) return "옹진군";
+        if (address.contains("중구")) return "중구";
+
         if (address.contains("강릉시")) return "강릉시";
         if (address.contains("속초시")) return "속초시";
         if (address.contains("동해시")) return "동해시";
-        // 추가 지역 매핑 필요시 여기에 추가
-        
+        if (address.contains("삼척시")) return "삼척시";
+        if (address.contains("양양군")) return "양양군";
+        if (address.contains("원주시")) return "원주시";
+        if (address.contains("영월군")) return "영월군";
+        if (address.contains("인제군")) return "인제군";
+        if (address.contains("고성군")) return "고성군";
+        if (address.contains("양구군")) return "양구군";
+
         return "기타";
     }
 
