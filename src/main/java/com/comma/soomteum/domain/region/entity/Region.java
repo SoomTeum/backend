@@ -23,9 +23,6 @@ public class Region extends BaseEntity {
     @Column(length = 20, nullable = false)
     private String name;
 
-    @Column(name = "area_code", nullable = false)
-    private String areaCode;   // 기본 지역 코드
-
     @Column(name = "kor_area_code", nullable = false)
     private String korAreaCode;   // 국문 관광 서비스 지역코드
 
