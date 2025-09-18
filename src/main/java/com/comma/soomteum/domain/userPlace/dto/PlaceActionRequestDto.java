@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 public class PlaceActionRequestDto {
 
     @NotBlank
-    @Schema(description = "공공데이터 API의 컨텐츠 ID", example = "123456")
+    @Schema(description = "공공데이터 API의 컨텐츠 ID", example = "128758")
     private String contentId;
 
     @NotBlank
@@ -24,7 +24,7 @@ public class PlaceActionRequestDto {
     private String regionName;
 
     @NotBlank
-    @Schema(description = "테마명", example = "자연")
+    @Schema(description = "테마명", example = "자연관광지")
     private String themeName;
 
     @NotNull

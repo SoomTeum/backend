@@ -69,11 +69,10 @@ public class PlaceSaveController {
     @DeleteMapping("/save")
     public ResponseEntity<ApiResponse<UserPlaceResponseDto>> unsave(
             @Parameter(hidden = true) @LoginUser User user,
-            @Parameter(description = "공공데이터 API의 콘텐츠 ID", required = true, example = "128758")
-            @RequestParam String contentId) {
+            @Valid @RequestBody PlaceActionRequestDto request) {
 
         var dto = userPlaceService.removeSaveByContentId(
-                user.getUserId(), contentId);
+                user.getUserId(), request.getContentId());
         return ResponseEntity.ok(ApiResponse.ok(dto));
     }
 
