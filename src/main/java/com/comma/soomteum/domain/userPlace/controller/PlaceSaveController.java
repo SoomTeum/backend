@@ -47,11 +47,12 @@ public class PlaceSaveController {
 
         var dto = userPlaceService.setActionByContentId(
                 user.getUserId(),
-                request.getContentId(), 
-                request.getRegionName(), 
-                request.getThemeName(), 
+                request.getContentId(),
+                request.getRegionName(),
+                request.getThemeName(),
+                request.getPlaceName(),
                 request.getCnctrLevel(),
-                UserActionType.SAVE, 
+                UserActionType.SAVE,
                 true);
         return ResponseEntity.ok(ApiResponse.ok(dto));
     }

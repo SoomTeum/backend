@@ -42,11 +42,12 @@ public class PlaceLikeController {
             @Valid @RequestBody PlaceActionRequestDto request) {
         UserPlaceResponseDto responseDto = userPlaceService.setActionByContentId(
                 user.getUserId(),
-                request.getContentId(), 
-                request.getRegionName(), 
-                request.getThemeName(), 
+                request.getContentId(),
+                request.getRegionName(),
+                request.getThemeName(),
+                request.getPlaceName(),
                 request.getCnctrLevel(),
-                UserActionType.LIKE, 
+                UserActionType.LIKE,
                 true);
         return ResponseEntity.ok(ApiResponse.ok(responseDto));
     }

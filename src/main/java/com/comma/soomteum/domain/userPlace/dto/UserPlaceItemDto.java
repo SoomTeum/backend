@@ -22,6 +22,9 @@ public class UserPlaceItemDto {
     @Schema(description = "Place 콘텐츠 ID", example = "content123")
     private String contentId;
 
+    @Schema(description = "여행지 이름", example = "경복궁")
+    private String placeName;
+
     @Schema(description = "Place 좋아요 수", example = "42")
     private Long likeCount;
 
