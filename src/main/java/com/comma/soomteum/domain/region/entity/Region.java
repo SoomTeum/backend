@@ -26,9 +26,6 @@ public class Region extends BaseEntity {
     @Column(name = "area_code", nullable = false)
     private String areaCode;   // 기본 지역 코드
 
-    @Column(name = "sigungu_code", nullable = false)
-    private String sigunguCode;   // 기본 시군구 코드
-
     @Column(name = "kor_area_code", nullable = false)
     private String korAreaCode;   // 국문 관광 서비스 지역코드
 
@@ -37,9 +34,6 @@ public class Region extends BaseEntity {
 
     @Column(name = "cnctr_area_code", nullable = false)
     private String cnctrAreaCode;   // 집중률 지역 코드
-
-    @Column(name = "cnctr_sigungu_code", nullable = false)
-    private String cnctrSigunguCode;   // 집중률 시군구 코드
 
     @OneToMany(mappedBy = "region", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @OrderBy("priority ASC, cnctrSigunguCode ASC")
