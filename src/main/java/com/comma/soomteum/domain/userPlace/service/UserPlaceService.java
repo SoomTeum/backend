@@ -173,6 +173,7 @@ public class UserPlaceService {
             return UserPlaceItemDto.builder()
                     .cnctrLevel(place.getCnctrLevel())
                     .contentId(place.getContentId())
+                    .placeName(place.getName())
                     .likeCount(place.getLikeCount())
                     .themeName(place.getTheme() != null ? place.getTheme().getName() : null)
                     .savedAt(up.getCreatedAt())
@@ -203,7 +204,7 @@ public class UserPlaceService {
     }
 
     @Transactional
-    public UserPlaceResponseDto setActionByContentId(Long userId, String contentId, String regionName, String themeName, BigDecimal cnctrLevel, UserActionType type, boolean enable) {
+    public UserPlaceResponseDto setActionByContentId(Long userId, String contentId, String regionName, String themeName, String placeName, BigDecimal cnctrLevel, UserActionType type, boolean enable) {
         if (userId == null) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         }
@@ -211,7 +212,7 @@ public class UserPlaceService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         
-        var place = placeService.findOrCreatePlace(contentId, regionName, themeName, cnctrLevel);
+        var place = placeService.findOrCreatePlace(contentId, regionName, themeName, placeName, cnctrLevel);
 
         boolean changed = false;
 

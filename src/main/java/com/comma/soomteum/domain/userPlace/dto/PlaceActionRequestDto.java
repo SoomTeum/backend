@@ -27,6 +27,9 @@ public class PlaceActionRequestDto {
     @Schema(description = "테마명", example = "자연관광지")
     private String themeName;
 
+    @Schema(description = "여행지 이름", example = "경복궁")
+    private String placeName;
+
     @NotNull
     @Schema(description = "혼잡도 레벨", example = "3.5")
     private BigDecimal cnctrLevel;

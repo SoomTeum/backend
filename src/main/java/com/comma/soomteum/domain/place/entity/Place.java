@@ -23,6 +23,9 @@ public class Place extends BaseEntity {
     @Column(length = 255, nullable = false)
     private String contentId;
 
+    @Column(length = 255)
+    private String name;
+
     @Column(length = 100, nullable = false)
     @Builder.Default
     private BigDecimal cnctrLevel = BigDecimal.ZERO;

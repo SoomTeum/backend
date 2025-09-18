@@ -88,12 +88,12 @@ public class PlaceService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Place findOrCreatePlace(String contentId, String regionName, String themeName, BigDecimal cnctrLevel) {
+    public Place findOrCreatePlace(String contentId, String regionName, String themeName, String placeName, BigDecimal cnctrLevel) {
         return placeRepository.findByContentId(contentId)
-                .orElseGet(() -> createPlace(contentId, regionName, themeName, cnctrLevel));
+                .orElseGet(() -> createPlace(contentId, regionName, themeName, placeName, cnctrLevel));
     }
 
-    private Place createPlace(String contentId, String regionName, String themeName, BigDecimal cnctrLevel) {
+    private Place createPlace(String contentId, String regionName, String themeName, String placeName, BigDecimal cnctrLevel) {
         // Region 찾기 - 없으면 기본값 사용
         var region = regionRepository.findByName(regionName)
                 .orElse(regionRepository.findByName("강릉시")
@@ -108,6 +108,7 @@ public class PlaceService {
 
         var place = Place.builder()
                 .contentId(contentId)
+                .name(placeName)
                 .cnctrLevel(cnctrLevel)
                 .likeCount(0L)
                 .region(region)
