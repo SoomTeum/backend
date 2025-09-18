@@ -214,34 +214,50 @@ public class UserPlaceService {
         
         var place = placeService.findOrCreatePlace(contentId, regionName, themeName, placeName, cnctrLevel);
 
+        // 유저별 동기화로 동시성 문제 해결
+        synchronized (userId.toString().intern()) {
+            return performUserPlaceAction(user, place, type, enable);
+        }
+    }
+
+    private UserPlaceResponseDto performUserPlaceAction(com.comma.soomteum.domain.user.entity.User user, com.comma.soomteum.domain.place.entity.Place place, UserActionType type, boolean enable) {
         boolean changed = false;
 
         if (enable) {
             // 이미 존재하는지 확인
-            boolean exists = userPlaceRepository.existsByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
-            if (!exists) {
+            var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(user.getUserId(), place.getPlaceId(), type);
+            if (existing.isEmpty()) {
                 try {
-                    userPlaceRepository.save(UserPlace.builder()
+                    var newUserPlace = UserPlace.builder()
                             .user(user)
                             .place(place)
                             .type(type)
-                            .build());
+                            .build();
+                    userPlaceRepository.save(newUserPlace);
+                    userPlaceRepository.flush(); // 즉시 DB에 반영
+                    
                     if (type == UserActionType.LIKE) {
                         place.increaseLikeCount();
                         placeRepository.save(place);
+                        placeRepository.flush();
                     }
                     changed = true;
                 } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                    // 동시성 문제로 중복 생성 시도 - 무시
+                    // 중복 키 제약조건 위반 시 이미 존재하는 것으로 간주
+                    // 로그를 남기고 정상 처리
+                    System.out.println("Duplicate key constraint violation for user: " + user.getUserId() + ", place: " + place.getPlaceId() + ", type: " + type);
                 }
             }
         } else {
-            var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(userId, place.getPlaceId(), type);
+            var existing = userPlaceRepository.findByUser_UserIdAndPlace_PlaceIdAndType(user.getUserId(), place.getPlaceId(), type);
             if (existing.isPresent()) {
                 userPlaceRepository.delete(existing.get());
+                userPlaceRepository.flush(); // 즉시 DB에 반영
+                
                 if (type == UserActionType.LIKE) {
                     place.decreaseLikeCount();
                     placeRepository.save(place);
+                    placeRepository.flush();
                 }
                 changed = true;
             }
