@@ -50,15 +50,34 @@ public class TatsCnctrService {
                     log.info("[TatsCnctr] 혼잡도 조회 시작: title='{}', area={}, sigungu={}",
                             req.getTitle(), req.getAreacode(), req.getSigungucode());
 
-                    return Mono.fromCallable(() ->
-                                    regionRepository.findByKorAreaCodeAndKorSigunguCode(
-                                                    req.getAreacode(), req.getSigungucode())
-                                            .orElseThrow(() -> {
-                                                log.error("[TatsCnctr] 지역 코드 조회 실패: area={}, sigungu={}",
-                                                        req.getAreacode(), req.getSigungucode());
-                                                return new CustomException(ErrorCode.REGION_NOT_FOUND);
-                                            })
-                            )
+                    return Mono.fromCallable(() -> {
+                                    String areaCode = req.getAreacode();
+                                    String sigunguCode = req.getSigungucode();
+
+                                    log.debug("[TatsCnctr] 입력 코드: areacode='{}', sigungucode='{}'", areaCode, sigunguCode);
+
+                                    // 1. 먼저 정확한 area/sigungu 코드로 조회
+                                    var region = regionRepository.findByKorAreaCodeAndKorSigunguCode(areaCode, sigunguCode);
+                                    if (region.isPresent()) {
+                                        log.debug("[TatsCnctr] 정확한 매칭 성공: {}", region.get().getName());
+                                        return region.get();
+                                    }
+
+                                    // 2. area 코드만으로 조회 시도
+                                    log.warn("[TatsCnctr] 정확한 지역 코드 매칭 실패, area 코드만으로 재시도: area={}, sigungu={}",
+                                            areaCode, sigunguCode);
+
+                                    var regionByArea = regionRepository.findByKorAreaCode(areaCode);
+                                    if (regionByArea.isPresent()) {
+                                        log.info("[TatsCnctr] area 코드로 지역 찾음: {}", regionByArea.get().getName());
+                                        return regionByArea.get();
+                                    }
+
+                                    // 3. 모든 시도 실패
+                                    log.error("[TatsCnctr] 지역 코드 조회 완전 실패: area={}, sigungu={}",
+                                            areaCode, sigunguCode);
+                                    throw new CustomException(ErrorCode.REGION_NOT_FOUND);
+                            })
                             .subscribeOn(Schedulers.boundedElastic())
 
                             .flatMap(region -> {
@@ -162,4 +181,5 @@ public class TatsCnctrService {
     private static void qpIfPresent(UriBuilder b, String name, String value) {
         if (value != null && !value.isBlank()) b.queryParam(name, value);
     }
+
 }
