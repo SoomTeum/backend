@@ -41,18 +41,18 @@ public class TatsCnctrService {
 
     @Cacheable(
             cacheNames = "tatsCnctr",
-            key = "T(java.util.Objects).hash(#req.getAreacode(), #req.getSigungucode(), #req.getTitle(), #req.getPageNo(), #req.getNumOfRows())"
+            key = "T(java.util.Objects).hash(#req.getAreaCode(), #req.getSigunguCode(), #req.getTitle(), #req.getPageNo(), #req.getNumOfRows())"
     )
     public Mono<TatsCnctrResponse.TatsCnctrResponseDto> getCnctrRate(
             KorService2Response.LocationBasedListResponseDto req) {
 
         return Mono.defer(() -> {
                     log.info("[TatsCnctr] 혼잡도 조회 시작: title='{}', area={}, sigungu={}",
-                            req.getTitle(), req.getAreacode(), req.getSigungucode());
+                            req.getTitle(), req.getAreaCode(), req.getSigunguCode());
 
                     return Mono.fromCallable(() -> {
-                                    String areaCode = req.getAreacode();
-                                    String sigunguCode = req.getSigungucode();
+                                    String areaCode = req.getAreaCode();
+                                    String sigunguCode = req.getSigunguCode();
 
                                     log.debug("[TatsCnctr] 입력 코드: areacode='{}', sigungucode='{}'", areaCode, sigunguCode);
 

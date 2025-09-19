@@ -54,8 +54,10 @@ public class KorService2Response {
         private String cat2;
         private String firstimage;
         private String dist;
-        private String areacode;
-        private String sigungucode;
+        @JacksonXmlProperty(localName = "areacode")
+        private String areaCode;
+        @JacksonXmlProperty(localName = "sigungucode")
+        private String sigunguCode;
         private Integer pageNo;
         private Integer numOfRows;
     }
