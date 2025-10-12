@@ -33,4 +33,8 @@ public class User extends BaseEntity {
     public void withdraw() {
         this.isActive = null;
     }
+
+    public void reactivate() {
+        this.isActive = true;
+    }
 }

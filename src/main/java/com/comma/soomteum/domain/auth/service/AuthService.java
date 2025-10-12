@@ -41,7 +41,14 @@ public class AuthService {
                                 .build()
                 ));
 
-        boolean isNewUser = user.getCreatedAt() != null &&
+        // 탈퇴한 회원이 다시 로그인하는 경우 계정 복구
+        boolean isReturningUser = false;
+        if (user.getIsActive() == null) {
+            user.reactivate();
+            isReturningUser = true;
+        }
+
+        boolean isNewUser = !isReturningUser && user.getCreatedAt() != null &&
                 user.getUpdatedAt() != null &&
                 user.getCreatedAt().equals(user.getUpdatedAt());
 
