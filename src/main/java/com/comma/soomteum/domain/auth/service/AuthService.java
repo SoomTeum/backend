@@ -37,13 +37,12 @@ public class AuthService {
                                 .providerId(providerId)
                                 .nickname("유저" + providerId)
                                 .email(email)
-                                .isActive(true)
                                 .build()
                 ));
 
         // 탈퇴한 회원이 다시 로그인하는 경우 계정 복구
         boolean isReturningUser = false;
-        if (user.getIsActive() == null) {
+        if (user.isWithdrawn()) {
             user.reactivate();
             isReturningUser = true;
         }

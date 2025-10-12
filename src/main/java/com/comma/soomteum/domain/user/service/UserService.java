@@ -49,7 +49,7 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 이미 탈퇴한 회원인지 확인
-        if (user.getIsActive() == null) {
+        if (user.isWithdrawn()) {
             throw new CustomException(ErrorCode.ALREADY_WITHDRAWN_USER);
         }
 
