@@ -63,6 +63,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(409_001, HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     ALREADY_LIKED_PLACE(409_002, HttpStatus.CONFLICT, "이미 좋아요를 누른 장소입니다."),
     NOT_LIKED_PLACE(409_003, HttpStatus.CONFLICT, "좋아요를 누르지 않은 장소입니다."),
+    ALREADY_WITHDRAWN_USER(409_004, HttpStatus.CONFLICT, "이미 탈퇴한 회원입니다."),
 
 
     // ========================

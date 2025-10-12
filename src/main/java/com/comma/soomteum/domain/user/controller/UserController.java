@@ -4,6 +4,7 @@ import com.comma.soomteum.domain.auth.annotation.LoginUser;
 import com.comma.soomteum.domain.user.entity.User;
 import com.comma.soomteum.domain.user.dto.UserNicknameRequestDto;
 import com.comma.soomteum.domain.user.dto.UserProfileResponseDto;
+import com.comma.soomteum.domain.user.dto.UserWithdrawResponseDto;
 import com.comma.soomteum.domain.user.service.UserService;
 import com.comma.soomteum.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,5 +35,11 @@ public class UserController {
     @PatchMapping("/nickname")
     public ApiResponse<UserProfileResponseDto> updateNickname(@Parameter(hidden = true) @LoginUser User user, @Valid @RequestBody UserNicknameRequestDto userNicknameRequestDto) {
         return ApiResponse.ok(userService.updateNickname(user.getUserId(), userNicknameRequestDto));
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "사용자의 계정을 탈퇴 처리합니다.")
+    @DeleteMapping("/withdraw")
+    public ApiResponse<UserWithdrawResponseDto> withdrawUser(@Parameter(hidden = true) @LoginUser User user) {
+        return ApiResponse.ok(userService.withdrawUser(user.getUserId()));
     }
 }
