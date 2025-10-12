@@ -38,7 +38,7 @@ public class UserController {
     }
 
     @Operation(summary = "회원 탈퇴", description = "사용자의 계정을 탈퇴 처리합니다.")
-    @DeleteMapping("/withdraw")
+    @PatchMapping("/withdraw")
     public ApiResponse<UserWithdrawResponseDto> withdrawUser(@Parameter(hidden = true) @LoginUser User user) {
         return ApiResponse.ok(userService.withdrawUser(user.getUserId()));
     }
