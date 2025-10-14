@@ -161,24 +161,34 @@ public class UserPlaceService {
     }
 
     @Transactional(readOnly = true)
-    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, int page, int size) {
+    public UserPlacePageResponseDto getMyPlaces(Long userId, UserActionType type, int page, int size, String keyword) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         var pageable = org.springframework.data.domain.PageRequest.of(page, size);
         var pageResult = userPlaceRepository.findByUser_UserIdAndType(userId, type, pageable);
 
-        var items = pageResult.getContent().stream().map(up -> {
-            var place = up.getPlace();
-            return UserPlaceItemDto.builder()
-                    .cnctrLevel(place.getCnctrLevel())
-                    .contentId(place.getContentId())
-                    .placeName(place.getName())
-                    .likeCount(place.getLikeCount())
-                    .themeName(place.getTheme() != null ? place.getTheme().getName() : null)
-                    .savedAt(up.getCreatedAt())
-                    .build();
-        }).toList();
+        var items = pageResult.getContent().stream()
+                // 검색 필터링
+                .filter(up -> {
+                    if (keyword == null || keyword.isBlank()) {
+                        return true;  // 검색어 없으면 모두 통과
+                    }
+                    String placeName = up.getPlace().getName();
+                    return placeName != null && placeName.toLowerCase()
+                            .contains(keyword.toLowerCase());
+                })
+                .map(up -> {
+                    var place = up.getPlace();
+                    return UserPlaceItemDto.builder()
+                            .cnctrLevel(place.getCnctrLevel())
+                            .contentId(place.getContentId())
+                            .placeName(place.getName())
+                            .likeCount(place.getLikeCount())
+                            .themeName(place.getTheme() != null ? place.getTheme().getName() : null)
+                            .savedAt(up.getCreatedAt())
+                            .build();
+                }).toList();
 
         return UserPlacePageResponseDto.of(
                 items,
