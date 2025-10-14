@@ -230,16 +230,16 @@ public class TourService {
     private int calculateQuietnessLevel(double rate) {
         if (rate < 0) {
             return -1;  // 데이터 없음
-        } else if (rate >= 80) {
-            return 5;  // 매우 한적함
-        } else if (rate >= 60) {
-            return 4;  // 한적함
-        } else if (rate >= 40) {
-            return 3;  // 보통
-        } else if (rate >= 20) {
-            return 2;  // 약간 혼잡
-        } else {
+        } else if (rate <= 20.0) {
             return 1;  // 혼잡
+        } else if (rate <= 40.0) {
+            return 2;  // 약간 혼잡
+        } else if (rate <= 60.0) {
+            return 3;  // 보통
+        } else if (rate <= 80.0) {
+            return 4;  // 한적함
+        } else {
+            return 5;  // 매우 한적함
         }
     }
 }
