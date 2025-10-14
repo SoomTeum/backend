@@ -46,6 +46,7 @@ public final class TourApiRequestDto {
         private String cat1;
         private String cat2;
         private Integer contentTypeId;
+        private String keyword;           // 검색어 (장소명 필터링)
 
         @Builder.Default private Integer pageNo = 1;
         @Builder.Default private Integer numOfRows = 20;

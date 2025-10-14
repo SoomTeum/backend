@@ -79,40 +79,73 @@ public class TourService {
     public Flux<TatsCnctrResponse.TatsCnctrResponseDto> AreaPlaces(TourApiRequestDto.AreaBasedList2 request) {
         return korAreaService.areaBasedList(request)
                 .flatMapMany(response -> Flux.fromIterable(response.getBody().getItems().getItem()))
+                // 검색 필터링
+                .filter(place -> {
+                    if (request.getKeyword() == null || request.getKeyword().isBlank()) {
+                        return true;  // 검색어 없으면 모두 통과
+                    }
+                    return place.getTitle().toLowerCase()
+                            .contains(request.getKeyword().toLowerCase());
+                })
                 .flatMap(this::addCnctrRateToPlace)
                 .collectList()
-                .flatMap(candidateList -> Mono.fromCallable(() -> {
+                .flatMapMany(candidateList -> {
+                    // 한적함순 정렬
+                    if ("C".equals(request.getArrange())) {
+                        candidateList.sort((a, b) -> {
+                            double rateA = parseCnctrRate(a.getCnctrRate());
+                            double rateB = parseCnctrRate(b.getCnctrRate());
+                            return Double.compare(rateB, rateA);  // 내림차순 (높은 값 = 한적함)
+                        });
 
-                    List<AiRecommendationRequest> aiRequestItems = candidateList.stream()
-                            .map(dto -> new AiRecommendationRequest(
-                                    dto.getTitle(),
-                                    dto.getContentid(),
-                                    dto.getCat1(),
-                                    dto.getCat2(),
-                                    dto.getFirstimage(),
-                                    dto.getDist(),
-                                    dto.getCnctrRate()
-                            ))
-                            .collect(Collectors.toList());
+                        // AI 정렬 건너뛰고 바로 반환
+                        return Flux.fromIterable(candidateList)
+                                .map(dto -> {
+                                    // quietnessLevel 계산 (AI 정렬을 안 거치므로 직접 계산)
+                                    double rate = parseCnctrRate(dto.getCnctrRate());
+                                    int quietnessLevel = calculateQuietnessLevel(rate);
+                                    dto.setQuietnessLevel(quietnessLevel);
 
-                    return aiServiceAdapter.createRankedRecommendations(aiRequestItems);
-                }))
-                .flatMapMany(Flux::fromIterable)
-                .map(aiResponse -> {
-                    TatsCnctrResponse.TatsCnctrResponseDto finalDto = new TatsCnctrResponse.TatsCnctrResponseDto();
-                    finalDto.setTitle(aiResponse.getTitle());
-                    finalDto.setContentid(aiResponse.getContentid());
-                    finalDto.setCat1(aiResponse.getCat1());
-                    finalDto.setCat2(aiResponse.getCat2());
-                    finalDto.setFirstimage(aiResponse.getFirstimage());
-                    finalDto.setDist(aiResponse.getDist());
-                    finalDto.setCnctrRate(aiResponse.getCnctrRate());
-                    finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
-                    
-                    // 새로운 필드들 설정
-                    setCatNameAndAreaInfo(finalDto, request.getAreaCode(), request.getSigunguCode());
-                    
-                    return finalDto;
+                                    // 새로운 필드들 설정
+                                    setCatNameAndAreaInfo(dto, request.getAreaCode(), request.getSigunguCode());
+
+                                    return dto;
+                                });
+                    }
+
+                    // 기존 AI 정렬 로직
+                    return Mono.fromCallable(() -> {
+                        List<AiRecommendationRequest> aiRequestItems = candidateList.stream()
+                                .map(dto -> new AiRecommendationRequest(
+                                        dto.getTitle(),
+                                        dto.getContentid(),
+                                        dto.getCat1(),
+                                        dto.getCat2(),
+                                        dto.getFirstimage(),
+                                        dto.getDist(),
+                                        dto.getCnctrRate()
+                                ))
+                                .collect(Collectors.toList());
+
+                        return aiServiceAdapter.createRankedRecommendations(aiRequestItems);
+                    })
+                    .flatMapMany(Flux::fromIterable)
+                    .map(aiResponse -> {
+                        TatsCnctrResponse.TatsCnctrResponseDto finalDto = new TatsCnctrResponse.TatsCnctrResponseDto();
+                        finalDto.setTitle(aiResponse.getTitle());
+                        finalDto.setContentid(aiResponse.getContentid());
+                        finalDto.setCat1(aiResponse.getCat1());
+                        finalDto.setCat2(aiResponse.getCat2());
+                        finalDto.setFirstimage(aiResponse.getFirstimage());
+                        finalDto.setDist(aiResponse.getDist());
+                        finalDto.setCnctrRate(aiResponse.getCnctrRate());
+                        finalDto.setQuietnessLevel(aiResponse.getQuietnessLevel());
+
+                        // 새로운 필드들 설정
+                        setCatNameAndAreaInfo(finalDto, request.getAreaCode(), request.getSigunguCode());
+
+                        return finalDto;
+                    });
                 });
     }
 
@@ -156,23 +189,57 @@ public class TourService {
             themeRepository.findByCat1AndCat2(dto.getCat1(), dto.getCat2())
                     .ifPresent(theme -> dto.setCatName(theme.getName()));
         }
-        
+
         // likeCount 설정
         if (dto.getContentid() != null) {
             placeService.findByContentId(dto.getContentid())
                     .ifPresent(place -> dto.setLikeCount(place.getLikeCount()));
         }
-        
+
         // areaCode, sigunguCode, areaName 설정
         if (areaCode != null && sigunguCode != null) {
             dto.setAreaCode(areaCode);
             dto.setSigunguCode(sigunguCode);
-            
+
             // areaName 설정
             regionRepository.findByKorAreaCodeAndKorSigunguCode(
-                    String.valueOf(areaCode), 
+                    String.valueOf(areaCode),
                     String.valueOf(sigunguCode)
             ).ifPresent(region -> dto.setAreaName(region.getName()));
+        }
+    }
+
+    /**
+     * cnctrRate 문자열을 double로 변환
+     * @param cnctrRate 혼잡도 문자열
+     * @return 파싱된 혼잡도 값. 실패 시 -1.0 반환
+     */
+    private double parseCnctrRate(String cnctrRate) {
+        try {
+            return Double.parseDouble(cnctrRate);
+        } catch (NumberFormatException | NullPointerException e) {
+            return -1.0;  // 데이터 없는 경우 최하위
+        }
+    }
+
+    /**
+     * cnctrRate 값을 기반으로 한적함 등급 계산
+     * @param rate 혼잡도 값
+     * @return 한적함 등급 (1-5, -1은 데이터 없음)
+     */
+    private int calculateQuietnessLevel(double rate) {
+        if (rate < 0) {
+            return -1;  // 데이터 없음
+        } else if (rate >= 80) {
+            return 5;  // 매우 한적함
+        } else if (rate >= 60) {
+            return 4;  // 한적함
+        } else if (rate >= 40) {
+            return 3;  // 보통
+        } else if (rate >= 20) {
+            return 2;  // 약간 혼잡
+        } else {
+            return 1;  // 혼잡
         }
     }
 }
