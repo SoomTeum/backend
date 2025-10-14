@@ -79,7 +79,18 @@ public class PlaceSaveController {
 
     @Operation(
             summary = "내 저장 목록 조회",
-            description = "현재 로그인 사용자의 저장 목록을 페이징으로 조회합니다.",
+            description = """
+                    현재 로그인 사용자의 저장 목록을 페이징으로 조회합니다.
+
+                    **검색 기능:**
+                    - `keyword`: 장소명으로 검색 (부분 일치, 대소문자 무관)
+                    - 검색어가 없으면 전체 목록 반환
+
+                    **예시:**
+                    - `/api/my/places?page=0&size=20` - 전체 목록 조회
+                    - `/api/my/places?keyword=경복궁` - "경복궁" 포함 장소만 조회
+                    - `/api/my/places?keyword=바다&page=0&size=10` - "바다" 검색 + 페이징
+                    """,
             security = @SecurityRequirement(name = "JWT TOKEN")
     )
     @ApiResponses({
@@ -90,9 +101,10 @@ public class PlaceSaveController {
     public ResponseEntity<ApiResponse<UserPlacePageResponseDto>> mySaved(
             @Parameter(hidden = true) @LoginUser User user,
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(value = "page", defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기") @RequestParam(value = "size", defaultValue = "20") int size) {
+            @Parameter(description = "페이지 크기") @RequestParam(value = "size", defaultValue = "20") int size,
+            @Parameter(description = "장소명 검색어 (부분 일치)") @RequestParam(value = "keyword", required = false) String keyword) {
 
-        var result = userPlaceService.getMyPlaces(user.getUserId (), UserActionType.SAVE, page, size);
+        var result = userPlaceService.getMyPlaces(user.getUserId(), UserActionType.SAVE, page, size, keyword);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
