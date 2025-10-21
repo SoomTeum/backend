@@ -36,8 +36,8 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
 
         String token = jwtTokenManager.resolveToken(request);
         if (token == null || !jwtTokenManager.validateToken(token)) {
-            // 토큰이 없거나 유효하지 않을 경우, null을 반환하여 비로그인 상태로 처리
-            return null;
+            // 토큰이 없거나 유효하지 않을 경우, 401 에러 반환
+            throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
         Long userId = jwtTokenManager.getUserIdFromToken(token);
