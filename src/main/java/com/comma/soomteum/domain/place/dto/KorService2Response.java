@@ -1,6 +1,7 @@
 package com.comma.soomteum.domain.place.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -54,9 +55,9 @@ public class KorService2Response {
         private String cat2;
         private String firstimage;
         private String dist;
-        @JacksonXmlProperty(localName = "areacode")
+        @JsonProperty("areacode")
         private String areaCode;
-        @JacksonXmlProperty(localName = "sigungucode")
+        @JsonProperty("sigungucode")
         private String sigunguCode;
         private Integer pageNo;
         private Integer numOfRows;
