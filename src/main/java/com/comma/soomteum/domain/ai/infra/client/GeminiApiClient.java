@@ -13,7 +13,7 @@ import java.util.Map;
 )
 public interface GeminiApiClient {
 
-    @PostMapping("/gemini-1.5-flash-latest:generateContent")
+    @PostMapping("/gemini-2.0-flash:generateContent")
     Map<String, Object> generateContent(
             @RequestParam("key") String apiKey,
             @RequestBody Map<String, Object> requestBody
