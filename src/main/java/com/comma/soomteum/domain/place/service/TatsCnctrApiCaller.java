@@ -1,7 +1,7 @@
-package com.comma.soomteum.domain.place.service;
+﻿package com.comma.soomteum.domain.place.service;
 
-import com.comma.soomteum.domain.place.config.TourApiProperties;
-import com.comma.soomteum.domain.place.dto.TourApiErrorResponse;
+import com.comma.soomteum.domain.external.tourapi.config.TourApiProperties;
+import com.comma.soomteum.domain.external.tourapi.dto.TourApiErrorResponse;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.CoercionAction;

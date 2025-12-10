@@ -1,4 +1,4 @@
-package com.comma.soomteum.domain.place.service;
+﻿package com.comma.soomteum.domain.place.service;
 
 import com.comma.soomteum.domain.ai.dto.AiReviewRequest;
 import com.comma.soomteum.domain.ai.dto.AiReviewResponse;
@@ -6,14 +6,14 @@ import com.comma.soomteum.domain.ai.service.AiRecommendationService;
 import com.comma.soomteum.domain.ai.service.AiReviewService;
 import com.comma.soomteum.domain.parking.dto.PublicParkingResponseDto;
 import com.comma.soomteum.domain.parking.service.PublicParkingService;
-import com.comma.soomteum.domain.place.dto.CategoryCodeResponse;
-import com.comma.soomteum.domain.place.dto.KorService2Response;
-import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
+import com.comma.soomteum.domain.external.tourapi.dto.CategoryCodeResponse;
+import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
+import com.comma.soomteum.domain.external.tourapi.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
-import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.external.tourapi.dto.response.PlaceDetailResponseDto;
 import com.comma.soomteum.domain.theme.entity.Theme;
 import com.comma.soomteum.domain.theme.repository.ThemeRepository;
-import com.comma.soomteum.domain.tour.service.TourService;
+import com.comma.soomteum.domain.recommendation.service.TourService;
 import com.comma.soomteum.domain.userPlace.enums.UserActionType;
 import com.comma.soomteum.domain.userPlace.service.UserPlaceService;
 import lombok.RequiredArgsConstructor;
