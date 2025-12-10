@@ -1,0 +1,80 @@
+name: deploy
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+    types: [ opened, reopened, synchronize, ready_for_review ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: deploy-soomteum
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) OIDC로 AWS 자격 구성
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 2) ECR 로그인
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 3) Spring Boot 이미지 Build & Push (:latest + :sha7)
+      - name: Build and Push
+        env:
+          ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          REGION:  ${{ secrets.AWS_REGION }}
+          REPO:    ${{ secrets.ECR_REPO }}
+        run: |
+          IMAGE=$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO
+          TAG=${GITHUB_SHA::7}
+          docker build -t $IMAGE:$TAG -t $IMAGE:latest .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      # 4) SSM Online 대기
+      - name: Wait until SSM is Online
+        run: |
+          for i in {1..5}; do
+            STATUS=$(aws ssm describe-instance-information \
+              --query "InstanceInformationList[?InstanceId=='${{ secrets.EC2_INSTANCE_ID }}'].PingStatus" \
+              --output text || true)
+            if [ "$STATUS" = "Online" ]; then
+              echo "SSM Online"
+              exit 0
+            fi
+            echo "SSM status: $STATUS (retry $i/5)"
+            sleep 10
+          done
+          echo "SSM not Online"
+          exit 1
+
+      # 5) SSM으로 EC2에 배포 (compose가 ${IMAGE_TAG:-latest} 사용)
+      - name: Deploy on EC2 via SSM
+        run: |
+          CMD='aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+                | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com \
+              && cd /srv/caddy \
+              && export IMAGE_TAG=${{ env.TAG }} \
+              && docker compose pull app \
+              && docker compose up -d app \
+              && docker image prune -f'
+          aws ssm send-command \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --region ${{ secrets.AWS_REGION }} \
+            --document-name "AWS-RunShellScript" \
+            --comment "soomteum deploy ${{ env.TAG }}" \
+            --parameters commands=["$CMD"]

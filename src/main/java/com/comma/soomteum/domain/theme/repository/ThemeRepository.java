@@ -1,0 +1,14 @@
+package com.comma.soomteum.domain.theme.repository;
+
+import com.comma.soomteum.domain.theme.entity.Theme;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface ThemeRepository extends JpaRepository<Theme, Long> {
+    Optional<Theme> findByName(String name);
+    Optional<Theme> findByCat2(String cat2);
+    Optional<Theme> findByCat1AndCat2(String cat1, String cat2);
+}
