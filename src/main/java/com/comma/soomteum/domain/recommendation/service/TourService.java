@@ -1,4 +1,4 @@
-﻿package com.comma.soomteum.domain.recommendation.service;
+package com.comma.soomteum.domain.recommendation.service;
 
 import com.comma.soomteum.domain.ai.adapter.AiServiceAdapter;
 import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;

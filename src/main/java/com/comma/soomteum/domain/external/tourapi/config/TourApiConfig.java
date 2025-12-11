@@ -1,4 +1,4 @@
-﻿package com.comma.soomteum.domain.external.tourapi.config;
+package com.comma.soomteum.domain.external.tourapi.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;

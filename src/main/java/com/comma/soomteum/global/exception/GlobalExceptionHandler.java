@@ -1,4 +1,4 @@
-﻿package com.comma.soomteum.global.exception;
+package com.comma.soomteum.global.exception;
 
 import com.comma.soomteum.global.response.ApiResponse;
 import com.comma.soomteum.global.response.CustomException;

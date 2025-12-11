@@ -1,4 +1,4 @@
-﻿package com.comma.soomteum.domain.place.controller;
+package com.comma.soomteum.domain.place.controller;
 
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailIntegratedResponseDto;
 import com.comma.soomteum.domain.place.service.PlaceDetailIntegratedService;

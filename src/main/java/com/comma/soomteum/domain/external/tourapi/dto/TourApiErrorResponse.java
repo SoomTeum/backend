@@ -1,4 +1,4 @@
-﻿package com.comma.soomteum.domain.external.tourapi.dto;
+package com.comma.soomteum.domain.external.tourapi.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
