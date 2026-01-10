@@ -41,9 +41,9 @@ public class GlobalExceptionHandler {
     }
 
     // 업스트림 예외 매핑
-    @ExceptionHandler(com.comma.soomteum.domain.place.service.KorApiCaller.Upstream4xxException.class)
+    @ExceptionHandler(com.comma.soomteum.domain.external.tourapi.service.KorApiCaller.Upstream4xxException.class)
     public ResponseEntity<ApiResponse<?>> handleUpstream4xx(
-            com.comma.soomteum.domain.place.service.KorApiCaller.Upstream4xxException ex,
+            com.comma.soomteum.domain.external.tourapi.service.KorApiCaller.Upstream4xxException ex,
             HttpServletRequest request
     ) {
         var custom = new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, ex.getMessage());
@@ -51,9 +51,9 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(custom, request.getRequestURI()));
     }
 
-    @ExceptionHandler(com.comma.soomteum.domain.place.service.KorApiCaller.Upstream5xxException.class)
+    @ExceptionHandler(com.comma.soomteum.domain.external.tourapi.service.KorApiCaller.Upstream5xxException.class)
     public ResponseEntity<ApiResponse<?>> handleUpstream5xx(
-            com.comma.soomteum.domain.place.service.KorApiCaller.Upstream5xxException ex,
+            com.comma.soomteum.domain.external.tourapi.service.KorApiCaller.Upstream5xxException ex,
             HttpServletRequest request
     ) {
         var custom = new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, ex.getMessage());

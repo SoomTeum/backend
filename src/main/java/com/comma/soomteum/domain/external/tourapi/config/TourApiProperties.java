@@ -1,4 +1,4 @@
-package com.comma.soomteum.domain.place.config;
+package com.comma.soomteum.domain.external.tourapi.config;
 
 
 import lombok.*;

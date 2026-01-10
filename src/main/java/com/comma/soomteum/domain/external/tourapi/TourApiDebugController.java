@@ -1,11 +1,11 @@
-package com.comma.soomteum.domain.place.controller;
+package com.comma.soomteum.domain.external.tourapi;
 
-import com.comma.soomteum.domain.place.dto.response.PlaceDetailResponseDto;
-import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
-import com.comma.soomteum.domain.place.dto.KorService2Response;
-import com.comma.soomteum.domain.place.service.KorAreaService;
-import com.comma.soomteum.domain.place.service.KorDetailService;
-import com.comma.soomteum.domain.place.service.KorLocationService;
+import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
+import com.comma.soomteum.domain.external.tourapi.dto.TourApiRequestDto;
+import com.comma.soomteum.domain.external.tourapi.dto.response.PlaceDetailResponseDto;
+import com.comma.soomteum.domain.external.tourapi.service.KorAreaService;
+import com.comma.soomteum.domain.external.tourapi.service.KorDetailService;
+import com.comma.soomteum.domain.external.tourapi.service.KorLocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,21 +21,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-@Tag(name = "디버그- KorService2", description = "한국관광공사 데이터 확인용 API (개발환경에서만 사용)")
+@Tag(name = "Debug - TourAPI", description = "한국관광공사 TourAPI 응답 구조 확인·디버그용 (개발 환경 전용)")
 @RestController
-@RequestMapping(path = "/api/debug", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/api/debug/tour", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @Validated
-public class KorService2Controller {
+public class TourApiDebugController {
 
     private final KorAreaService areaService;
     private final KorLocationService locationService;
     private final KorDetailService detailService;
 
     @Operation(
-            summary = "위치기반 관광정보 조회 (/locationBasedList2)",
-            description = "경도(mapX)·위도(mapY)와 반경(radius) 기준으로 관광정보를 조회합니다. "
-                    + "옵션: cat1/cat2(분류), pageNo/numOfRows(페이징), arrange(정렬; 기본값 서비스 내부 적용).",
+            summary = "위치 기반 관광정보 원본 확인",
+            description = "공공데이터 TourAPI(locationBasedList2)를 호출해 경도·위도와 반경 기준 원본 응답을 반환합니다. "
+                    + "디버그 용도로 cat1/cat2, pageNo/numOfRows, arrange 옵션을 그대로 전달합니다.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "성공",
                             content = @Content(schema = @Schema(implementation = KorService2Response.class))),
@@ -45,15 +45,13 @@ public class KorService2Controller {
     public Mono<KorService2Response> locationBasedList(
             @Valid @ParameterObject TourApiRequestDto.LocationBasedList2 req
     ) {
-        // DTO 내부의 pageNoOrDefault, rowsOrDefault, arrangeOrDefault 등을
-        // 서비스에서 사용 가능 (컨트롤러에서는 그대로 전달)
         return locationService.locationBasedList(req);
     }
 
     @Operation(
-            summary = "지역기반 관광정보 조회 (/areaBasedList2)",
-            description = "지역과 테마를 기반으로 관광지를 조회합니다. "
-                    + " 옵션: cat1/cat2(분류), pageNo/numOfRows(페이징), arrange(정렬; 기본값 서비스 내부 적용)",
+            summary = "지역 기반 관광정보 원본 확인",
+            description = "지역·테마 기반으로 TourAPI(areaBasedList2)를 호출한 원본 응답을 반환합니다. "
+                    + "cat1/cat2, pageNo/numOfRows, arrange 옵션을 그대로 전달해 디버그에 활용합니다.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "성공",
                             content = @Content(schema = @Schema(implementation = KorService2Response.class))),
@@ -67,12 +65,11 @@ public class KorService2Controller {
     }
 
     @Operation(
-            summary = "여행지 공통정보 조회 (/detailCommon2)",
-            description = "contentId로 공통정보를 조회하고, 이름/대표이미지/위치/주소/소개만 추려 반환합니다."
+            summary = "여행지 공통정보 원본 확인",
+            description = "contentId로 TourAPI(detailCommon2)를 호출한 원본 데이터에서 기본 필드만 추려 반환합니다."
     )
     @ApiResponse(responseCode = "200", description = "성공",
             content = @Content(schema = @Schema(implementation = PlaceDetailResponseDto.class)))
-
     @GetMapping("/detail")
     public Mono<PlaceDetailResponseDto> detail(
             @Valid @ParameterObject TourApiRequestDto.DetailCommon2 req

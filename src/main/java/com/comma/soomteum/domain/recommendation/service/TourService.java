@@ -1,12 +1,12 @@
-package com.comma.soomteum.domain.tour.service;
+package com.comma.soomteum.domain.recommendation.service;
 
 import com.comma.soomteum.domain.ai.adapter.AiServiceAdapter;
-import com.comma.soomteum.domain.place.dto.KorService2Response;
+import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
-import com.comma.soomteum.domain.place.dto.TourApiRequestDto;
+import com.comma.soomteum.domain.external.tourapi.dto.TourApiRequestDto;
 import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest; // AI 요청 DTO 임포트
-import com.comma.soomteum.domain.place.service.KorAreaService;
-import com.comma.soomteum.domain.place.service.KorLocationService;
+import com.comma.soomteum.domain.external.tourapi.service.KorAreaService;
+import com.comma.soomteum.domain.external.tourapi.service.KorLocationService;
 import com.comma.soomteum.domain.place.service.TatsCnctrService;
 import com.comma.soomteum.domain.place.service.PlaceService;
 import com.comma.soomteum.domain.theme.repository.ThemeRepository;

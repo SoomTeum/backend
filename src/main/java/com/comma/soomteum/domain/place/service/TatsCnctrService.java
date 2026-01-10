@@ -1,6 +1,6 @@
 package com.comma.soomteum.domain.place.service;
 
-import com.comma.soomteum.domain.place.dto.KorService2Response;
+import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
 import com.comma.soomteum.domain.region.entity.Region;
 import com.comma.soomteum.domain.region.entity.RegionCnctr;
