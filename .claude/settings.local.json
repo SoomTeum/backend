@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(curl:*)",
+      "Bash(k6 version:*)",
+      "Bash(winget install:*)",
+      "Bash(powershell:*)",
+      "Bash(./k6-v0.48.0-windows-amd64/k6.exe run:*)"
     ],
     "deny": [],
     "ask": []

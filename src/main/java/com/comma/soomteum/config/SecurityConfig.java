@@ -29,14 +29,16 @@ public class SecurityConfig {
                         // 공개 접근 허용
                         .requestMatchers(
                                 "/v3/api-docs/**",
-                                "/swagger-ui/**", 
+                                "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/api/auth/**",
                                 "/error",
                                 "/api/places/**",           // 여행지 조회
                                 "/api/parking/**",          // 주차장 조회
                                 "/api/kor/**",              // 관광정보 API
-                                "/api/tour/**"              // 여행 추천
+                                "/api/tour/**",             // 여행 추천
+                                "/api/admin/cache/**",      // 캐시 통계
+                                "/actuator/**"              // Actuator
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/**").permitAll() // 사용자 정보 조회
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // 프리플라이트 허용

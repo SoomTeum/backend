@@ -1,17 +1,22 @@
 package com.comma.soomteum.domain.region.service;
 
+import com.comma.soomteum.config.CacheConfig;
 import com.comma.soomteum.domain.region.dto.RegionGroupResponseDto;
 import com.comma.soomteum.domain.region.entity.Region;
 import com.comma.soomteum.domain.region.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RegionService {
 
     private final RegionRepository regionRepository;
@@ -47,7 +52,7 @@ public class RegionService {
         if (areaCode == null) {
             return "정보없음";
         }
-        
+
         switch (areaCode) {
             case "1":
                 return "서울";
@@ -72,5 +77,36 @@ public class RegionService {
             default:
                 return "기타";
         }
+    }
+
+    /**
+     * areaCode, sigunguCode 기준 지역 조회 (캐시 적용)
+     *
+     * 캐시 키: areaCode:sigunguCode
+     * TTL: 24시간
+     */
+    @Cacheable(
+            cacheNames = CacheConfig.REGION_CACHE,
+            key = "#areaCode + ':' + #sigunguCode"
+    )
+    public Optional<Region> findByAreaCodeAndSigunguCode(String areaCode, String sigunguCode) {
+        log.debug("[RegionService] 지역 조회: areaCode={}, sigunguCode={}", areaCode, sigunguCode);
+        return regionRepository.findByKorAreaCodeAndKorSigunguCode(areaCode, sigunguCode);
+    }
+
+    /**
+     * areaCode, sigunguCode로 지역 이름 조회 (캐시 적용)
+     *
+     * @return 지역 이름 또는 null
+     */
+    @Cacheable(
+            cacheNames = CacheConfig.REGION_CACHE,
+            key = "'name:' + #areaCode + ':' + #sigunguCode"
+    )
+    public String getRegionName(String areaCode, String sigunguCode) {
+        log.debug("[RegionService] 지역 이름 조회: areaCode={}, sigunguCode={}", areaCode, sigunguCode);
+        return regionRepository.findByKorAreaCodeAndKorSigunguCode(areaCode, sigunguCode)
+                .map(Region::getName)
+                .orElse(null);
     }
 }

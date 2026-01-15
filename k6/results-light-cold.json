@@ -1,0 +1,24 @@
+{
+  "scenario": "light",
+  "warmup": false,
+  "timestamp": "2026-01-15T18:44:10.526Z",
+  "metrics": {
+    "http_reqs": {
+      "count": 395,
+      "rate": "6.34"
+    },
+    "http_req_duration": {
+      "avg": "27.47",
+      "med": "7.33",
+      "p90": "11.50",
+      "p95": "15.29",
+      "p99": "797.12",
+      "max": "803.38"
+    },
+    "error_rate": "0",
+    "area_api_duration": {
+      "avg": "27.52",
+      "p95": "15.31"
+    }
+  }
+}
