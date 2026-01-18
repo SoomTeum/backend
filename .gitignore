@@ -40,3 +40,6 @@ out/
 application.properties
 .env
 
+# k6 binary
+k6.exe
+k6-v*-windows-amd64/
