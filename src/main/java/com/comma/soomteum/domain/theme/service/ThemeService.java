@@ -1,17 +1,22 @@
 package com.comma.soomteum.domain.theme.service;
 
+import com.comma.soomteum.config.CacheConfig;
 import com.comma.soomteum.domain.theme.dto.ThemeGroupResponseDto;
 import com.comma.soomteum.domain.theme.entity.Theme;
 import com.comma.soomteum.domain.theme.repository.ThemeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ThemeService {
 
     private final ThemeRepository themeRepository;
@@ -47,7 +52,7 @@ public class ThemeService {
         if (cat1 == null) {
             return "정보없음";
         }
-        
+
         switch (cat1) {
             case "A01":
                 return "자연";
@@ -60,5 +65,36 @@ public class ThemeService {
             default:
                 return "기타";
         }
+    }
+
+    /**
+     * cat1, cat2 기준 테마 조회 (캐시 적용)
+     *
+     * 캐시 키: cat1:cat2
+     * TTL: 24시간
+     */
+    @Cacheable(
+            cacheNames = CacheConfig.THEME_CACHE,
+            key = "#cat1 + ':' + #cat2"
+    )
+    public Optional<Theme> findByCat1AndCat2(String cat1, String cat2) {
+        log.debug("[ThemeService] 테마 조회: cat1={}, cat2={}", cat1, cat2);
+        return themeRepository.findByCat1AndCat2(cat1, cat2);
+    }
+
+    /**
+     * cat1, cat2로 테마 이름 조회 (캐시 적용)
+     *
+     * @return 테마 이름 또는 null
+     */
+    @Cacheable(
+            cacheNames = CacheConfig.THEME_CACHE,
+            key = "'name:' + #cat1 + ':' + #cat2"
+    )
+    public String getThemeName(String cat1, String cat2) {
+        log.debug("[ThemeService] 테마 이름 조회: cat1={}, cat2={}", cat1, cat2);
+        return themeRepository.findByCat1AndCat2(cat1, cat2)
+                .map(Theme::getName)
+                .orElse(null);
     }
 }

@@ -1,8 +1,9 @@
 package com.comma.soomteum.domain.place.service;
 
+import com.comma.soomteum.config.CacheConfig;
+import com.comma.soomteum.config.ReactiveCacheHelper;
 import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
-import com.comma.soomteum.domain.region.entity.Region;
 import com.comma.soomteum.domain.region.entity.RegionCnctr;
 import com.comma.soomteum.domain.region.repository.RegionCnctrRepository;
 import com.comma.soomteum.domain.region.repository.RegionRepository;
@@ -10,7 +11,6 @@ import com.comma.soomteum.global.response.CustomException;
 import com.comma.soomteum.global.response.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriBuilder;
@@ -21,7 +21,6 @@ import reactor.util.retry.Retry;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
@@ -33,17 +32,37 @@ public class TatsCnctrService {
     private final RegionRepository regionRepository;
     private final RegionCnctrRepository regionCnctrRepository;
     private final TatsCnctrApiCaller caller;
+    private final ReactiveCacheHelper cacheHelper;
 
     private static final String PATH = "/tatsCnctrRatedList";
 
     private static final Duration PER_CALL_TIMEOUT = Duration.ofSeconds(3);
     private static final Duration OVERALL_TIMEOUT = Duration.ofSeconds(10);
 
-    @Cacheable(
-            cacheNames = "tatsCnctr",
-            key = "T(java.util.Objects).hash(#req.getAreaCode(), #req.getSigunguCode(), #req.getTitle(), #req.getPageNo(), #req.getNumOfRows())"
-    )
+    /**
+     * 한적함 점수 조회 (캐시 적용)
+     *
+     * 캐시 키: contentId (장소 고유 ID)
+     * TTL: 30분
+     *
+     * Reactive 환경에서 안전한 캐싱을 위해 ReactiveCacheHelper 사용
+     */
     public Mono<TatsCnctrResponse.TatsCnctrResponseDto> getCnctrRate(
+            KorService2Response.LocationBasedListResponseDto req) {
+
+        String cacheKey = req.getContentid();
+
+        return cacheHelper.cacheMono(
+                CacheConfig.CNCTR_RATE_CACHE,
+                cacheKey,
+                () -> fetchCnctrRate(req)
+        );
+    }
+
+    /**
+     * 실제 한적함 점수 조회 (외부 API 호출)
+     */
+    private Mono<TatsCnctrResponse.TatsCnctrResponseDto> fetchCnctrRate(
             KorService2Response.LocationBasedListResponseDto req) {
 
         return Mono.defer(() -> {

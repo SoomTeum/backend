@@ -4,13 +4,13 @@ import com.comma.soomteum.domain.ai.adapter.AiServiceAdapter;
 import com.comma.soomteum.domain.external.tourapi.dto.KorService2Response;
 import com.comma.soomteum.domain.place.dto.TatsCnctrResponse;
 import com.comma.soomteum.domain.external.tourapi.dto.TourApiRequestDto;
-import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest; // AI 요청 DTO 임포트
+import com.comma.soomteum.domain.ai.dto.AiRecommendationRequest;
 import com.comma.soomteum.domain.external.tourapi.service.KorAreaService;
 import com.comma.soomteum.domain.external.tourapi.service.KorLocationService;
 import com.comma.soomteum.domain.place.service.TatsCnctrService;
 import com.comma.soomteum.domain.place.service.PlaceService;
-import com.comma.soomteum.domain.theme.repository.ThemeRepository;
-import com.comma.soomteum.domain.region.repository.RegionRepository;
+import com.comma.soomteum.domain.theme.service.ThemeService;
+import com.comma.soomteum.domain.region.service.RegionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -26,8 +26,8 @@ public class TourService {
     private final KorAreaService korAreaService;
     private final TatsCnctrService tatsCnctrService;
     private final AiServiceAdapter aiServiceAdapter;
-    private final ThemeRepository themeRepository;
-    private final RegionRepository regionRepository;
+    private final ThemeService themeService;
+    private final RegionService regionService;
     private final PlaceService placeService;
 
     public Flux<TatsCnctrResponse.TatsCnctrResponseDto> locationPlaces(TourApiRequestDto.LocationBasedList2 request) {
@@ -183,17 +183,28 @@ public class TourService {
                 });
     }
 
+    /**
+     * 메타데이터 설정 (캐싱된 서비스 사용)
+     *
+     * - catName: ThemeService (캐싱 적용, TTL 24시간)
+     * - likeCount: PlaceService (캐싱 적용, TTL 10분)
+     * - areaName: RegionService (캐싱 적용, TTL 24시간)
+     */
     private void setCatNameAndAreaInfo(TatsCnctrResponse.TatsCnctrResponseDto dto, Integer areaCode, Integer sigunguCode) {
-        // catName 설정
+        // catName 설정 (캐싱된 ThemeService 사용)
         if (dto.getCat1() != null && dto.getCat2() != null) {
-            themeRepository.findByCat1AndCat2(dto.getCat1(), dto.getCat2())
-                    .ifPresent(theme -> dto.setCatName(theme.getName()));
+            String themeName = themeService.getThemeName(dto.getCat1(), dto.getCat2());
+            if (themeName != null) {
+                dto.setCatName(themeName);
+            }
         }
 
-        // likeCount 설정
+        // likeCount 설정 (캐싱된 PlaceService 사용)
         if (dto.getContentid() != null) {
-            placeService.findByContentId(dto.getContentid())
-                    .ifPresent(place -> dto.setLikeCount(place.getLikeCount()));
+            Long likeCount = placeService.getLikeCount(dto.getContentid());
+            if (likeCount != null) {
+                dto.setLikeCount(likeCount);
+            }
         }
 
         // areaCode, sigunguCode, areaName 설정
@@ -201,11 +212,14 @@ public class TourService {
             dto.setAreaCode(areaCode);
             dto.setSigunguCode(sigunguCode);
 
-            // areaName 설정
-            regionRepository.findByKorAreaCodeAndKorSigunguCode(
+            // areaName 설정 (캐싱된 RegionService 사용)
+            String regionName = regionService.getRegionName(
                     String.valueOf(areaCode),
                     String.valueOf(sigunguCode)
-            ).ifPresent(region -> dto.setAreaName(region.getName()));
+            );
+            if (regionName != null) {
+                dto.setAreaName(regionName);
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.comma.soomteum.domain.place.service;
 
+import com.comma.soomteum.config.CacheConfig;
 import com.comma.soomteum.domain.parking.dto.PublicParkingResponseDto;
 import com.comma.soomteum.domain.parking.service.PublicParkingService;
 import com.comma.soomteum.domain.place.dto.response.PlaceDetailWithParkingDto;
@@ -14,6 +15,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
@@ -40,6 +45,25 @@ public class PlaceService {
 
     public Optional<Place> findByContentId(String contentId) {
         return placeRepository.findByContentId(contentId);
+    }
+
+    /**
+     * contentId로 좋아요 수 조회 (캐시 적용)
+     *
+     * 캐시 키: contentId
+     * TTL: 10분
+     *
+     * @return 좋아요 수 또는 null (장소가 없는 경우)
+     */
+    @Cacheable(
+            cacheNames = CacheConfig.PLACE_LIKE_CACHE,
+            key = "#contentId"
+    )
+    public Long getLikeCount(String contentId) {
+        log.debug("[PlaceService] 좋아요 수 조회: contentId={}", contentId);
+        return placeRepository.findByContentId(contentId)
+                .map(Place::getLikeCount)
+                .orElse(null);
     }
 
     public PlaceDetailWithParkingDto getPlaceDetailWithParking(Long placeId) {
