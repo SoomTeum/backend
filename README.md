@@ -1,4 +1,4 @@
-# SoomTeum (숨틈)
+# SoomTeum (숨 여행, 틈)
 ### 2025 관광데이터 활용 공모전 장려상 수상작 🎖️
 > **숨 여행, 틈** - 한적한 여행지를 발견하고, 나만의 여행을 계획하세요.
 
@@ -114,6 +114,11 @@ http://localhost:8080/swagger-ui.html
 | placeLikeCache | 10분 | 500 | 좋아요 수 |
 
 **성능 개선**: p95 응답 시간 2,400ms → 15.29ms (99.4% 개선)
+
+---
+
+## 아키텍처
+<img width="1408" height="768" alt="숨틈 아키텍처" src="https://github.com/user-attachments/assets/fb3e4ac2-43c9-48a5-aebe-9c4a1fe5abeb" />
 
 ---
 
